@@ -7,7 +7,7 @@ import itertools
 from pathlib import Path
 from argparse import ArgumentParser
 from syne_tune.util import catchtime
-
+from open_optformer.history import OptformerConverter, Converter
 from load_data import get_metadata, create_history_from_results
 
 
@@ -45,6 +45,13 @@ if __name__ == "__main__":
         default=0.8,
         help="ratio of data used for training",
     )
+    parser.add_argument(
+        "--converter",
+        type=str,
+        required=True,
+        choices=["plain", "optformer"],
+        help="Converter formatting for numeric tokens",
+    )
 
     methods = [
         "REA",
@@ -69,6 +76,8 @@ if __name__ == "__main__":
 
     validation_tasks = json.load(open('validation_tasks.json'))
     validation_tasks = list(itertools.chain.from_iterable(validation_tasks.values()))
+
+    converter = OptformerConverter(q=args.quantization_levels) if args.converter == "optformer" else Converter(q=args.quantization_levels)
 
     with catchtime("load benchmark results"):
 
@@ -97,9 +106,9 @@ if __name__ == "__main__":
 #                try:
                     benchmark_name = metadata['benchmark']
                     if benchmark_name in validation_tasks:
-                        hist_valid.extend(create_history_from_results(name, metadata, path, max_num_trials, args.num_permutation))
+                        hist_valid.extend(create_history_from_results(name, metadata, path, max_num_trials, args.num_permutation, converter))
                     else:
-                        hist_train.extend(create_history_from_results(name, metadata, path, max_num_trials, args.num_permutation))
+                        hist_train.extend(create_history_from_results(name, metadata, path, max_num_trials, args.num_permutation, converter))
 #                except Exception as e:
 #                    print(f"Error processing {name}: {e}")
 #                    continue
