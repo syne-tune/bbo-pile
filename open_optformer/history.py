@@ -318,7 +318,7 @@ class History:
             config = {k: row[f"config_{k}"] for k in config_space.keys()}
             result = row[metric_name]
             hist.add_trial(config, result)
-            if i >= max_num_trials - 1 and max_num_trials is not None:
+            if max_num_trials is not None and i >= max_num_trials - 1:
                 break
 
         return hist

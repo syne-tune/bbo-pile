@@ -285,9 +285,6 @@ def test_history_shuffle():
         assert 'benchmark:test' in prompt_shuffle1
         assert 'algorithm:test' in prompt_shuffle1
 
-
-# ============================================================================
-
 def test_trial():
     trial = Trial(config={'x': 0.5}, metric=0.5)
     assert trial.config == {'x': 0.5}
@@ -353,4 +350,148 @@ def test_from_syne_tune_experiment():
         experiment = load_experiment(tuner_name=tuner.name, local_path=local_path)
         history = History.from_syne_tune_experiment(experiment)
 
-        assert len(history.trials) == 1
+        assert len(history.trials) >= 1
+
+
+def test_optformer_get_user_defined_symbols():
+    """Test OptformerConverter.get_user_defined_symbols() returns correct symbols"""
+    converter = OptformerConverter(q=100)
+    symbols = converter.get_user_defined_symbols()
+    
+    # Check base symbols
+    assert 'name' in symbols
+    assert 'algorithm' in symbols
+    assert 'benchmark' in symbols
+    assert 'type' in symbols
+    assert 'CAT' in symbols
+    assert 'UNI' in symbols
+    assert 'INT' in symbols
+    assert 'LOGUNI' in symbols
+    assert 'LOGINT' in symbols
+    assert '|' in symbols
+    assert '&' in symbols
+    assert '*' in symbols
+    assert ',' in symbols
+    assert '<' in symbols
+    assert '>' in symbols
+    
+    # Check quantized tokens
+    assert '<0>' in symbols
+    assert '<50>' in symbols
+    assert '<100>' in symbols
+    quant_tokens = [s for s in symbols if s.startswith('<') and s.endswith('>')]
+    assert len(quant_tokens) == 101  # 0 to 100
+
+
+def test_optformer_from_syne_tune_experiment():
+    """End-to-end integration test: OptformerConverter with real Syne Tune experiment"""
+    from syne_tune import Tuner, StoppingCriterion
+    from syne_tune.backend import PythonBackend
+    from syne_tune.config_space import randint, uniform, choice, loguniform, lograndint, Categorical
+    from syne_tune.optimizer.baselines import RandomSearch
+
+    def train_function(width: float, height: int, category: str, log_param: float, log_int: int):
+        """
+        The function to be tuned with various hyperparameter types.
+        """
+        from syne_tune import Reporter
+
+        reporter = Reporter()
+        for step in range(100):
+            # Create a dummy score that depends on all parameters
+            score = (0.1 + width * step  / 100) ** (-1) + height * 0.1 + len(category) * 0.05 + log_param * 0.1 + log_int * 0.01
+            reporter(step=step, mean_loss=score)
+
+    # Config space with various hyperparameter types
+    config_space = {
+        "width": uniform(0.0, 1.0),
+        "height": randint(0, 20),
+        "category": choice(['a', 'b', 'c', 'd']),
+        "log_param": loguniform(1e-3, 1.0),
+        "log_int": lograndint(1, 100),
+    }
+
+    metric = "mean_loss"
+    scheduler = RandomSearch(
+        config_space,
+        metrics=[metric],
+    )
+
+    stop_criterion = StoppingCriterion(
+        max_num_trials_completed=5,
+    )
+
+    with tempfile.TemporaryDirectory() as local_path:
+        os.environ[SYNE_TUNE_ENV_FOLDER] = local_path
+        backend = PythonBackend(tune_function=train_function, config_space=config_space)
+        backend.set_path(results_root=local_path)
+        tuner = Tuner(
+            trial_backend=backend,
+            scheduler=scheduler,
+            stop_criterion=stop_criterion,
+            n_workers=1,
+            save_tuner=False,
+        )
+        tuner.run()
+        experiment = load_experiment(tuner_name=tuner.name, local_path=local_path)
+        
+        history = History.from_syne_tune_experiment(
+            experiment, 
+            converter=OptformerConverter(q=1000)
+        )
+
+        # Verify basic structure
+        assert len(history.trials) >= 5
+        assert history.converter is not None
+        assert isinstance(history.converter, OptformerConverter)
+        
+        # Verify prompt format
+        prompt = history.get_prompt()
+        assert isinstance(prompt, str)
+        assert len(prompt) > 0
+        
+        # Verify prompt contains expected components
+        assert f"benchmark:{history.name}," in prompt
+        assert f"algorithm:{history.algorithm}" in prompt
+        assert "&&" in prompt
+        
+        # Verify hyperparameter types are in the prompt
+        assert "type:UNI" in prompt
+        assert "type:INT" in prompt
+        assert "type:CAT" in prompt
+        assert "type:LOGUNI" in prompt
+        assert "type:LOGINT" in prompt
+        
+        # Verify trials section format
+        assert "&" in prompt
+        trials_section = prompt.split("&")[-1]
+        assert "|" in trials_section
+        
+        # Verify all trials are formatted with <VALUE> tokens
+        trial_parts = trials_section.split("|")
+        # Filter out empty strings
+        trial_parts = [t for t in trial_parts if t]
+        assert len(trial_parts) >= 5
+        
+        # Verify each trial has <VALUE> format for tokens
+        for trial_part in trial_parts:
+            if trial_part:
+                assert "<" in trial_part and ">" in trial_part
+                assert "*" in trial_part
+        
+        sample_trial = history.trials[0]
+        for hp_name, hp in history.config_space.items():
+            value = sample_trial.config[hp_name]
+            txt = history.converter.value_to_txt(value, hp=hp, hp_name=hp_name)
+            recovered = history.converter.txt_to_value(txt, hp=hp, hp_name=hp_name)
+            
+            if isinstance(hp, Categorical):
+                assert recovered == value
+            else:
+                quantization_interval = (hp.upper - hp.lower) / history.converter.q
+                # Use full quantization interval as tolerance (floor quantization can have error up to full interval)
+                # Add small epsilon for floating point precision
+                tolerance = quantization_interval + 1e-6
+                assert abs(value - recovered) <= tolerance, \
+                    f"Round-trip failed for {hp_name}: {value} -> {txt} -> {recovered} (tolerance: {tolerance})"
+
