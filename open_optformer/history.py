@@ -4,7 +4,7 @@ import warnings
 from dataclasses import dataclass, field
 
 import numpy as np
-from syne_tune.config_space import Categorical, Float, Integer, Domain, config_space_from_json_dict, FiniteRange
+from syne_tune.config_space import Categorical, Float, Integer, Domain, config_space_from_json_dict, FiniteRange, is_log_space
 from syne_tune.experiments import ExperimentResult
 
 
@@ -104,7 +104,90 @@ class Converter:
                        'CAT', 'UNI', 'INT', "|", "&", "*", ","]
         quant_tokens = [self._format_token(i) for i in range(self.q + 1)]
         return base_symbols + quant_tokens
+    
+    def encode_problem_definition(self, history, shuffle=False):
+        """
+        Encode the problem definition to match the OptFormer tokenizer format.
+        https://github.com/google-research/optformer/blob/12e2639954b0cd9bf824aab2d040650e6b32089c/optformer/data/converters_test.py#L59
 
+        Args:
+            history: History object containing the data to format
+            shuffle: Whether to shuffle the order of hyperparameters
+            
+        Returns:
+            Formatted problem definition string (without header separator)
+        """
+        string = f"benchmark:{history.name},"
+        string += f"algorithm:{history.algorithm},"
+
+        hypers = list(history.config_space.items())
+        if shuffle:
+            random.shuffle(hypers)
+        for hp_name, hp in hypers:
+            string += f"parameter:"
+            string += "{"
+            string += f"name:{hp_name},"
+
+            # Log-scale is not supported by this converter.
+            if is_log_space(hp):
+                warnings.warn(f"Log-scale is not supported by this converter. Skipping {hp_name}")
+
+            if isinstance(hp, Categorical):
+                string += f"type:CAT,"
+                string += f"categories:{hp.categories},".replace(" ", "")
+            elif isinstance(hp, Float):
+                string += f"type:UNI,"
+                string += f"min_value:{hp.lower},"
+                string += f"max_value:{hp.upper},"
+            elif isinstance(hp, Integer):
+                string += f"type:INT,"
+                string += f"min_value:{hp.lower},"
+                string += f"max_value:{hp.upper},"
+            elif isinstance(hp, FiniteRange):
+                if hp.cast_int:
+                    string += f"type:INT,"
+                else:
+                    string += f"type:UNI,"
+                string += f"min_value:{hp.lower},"
+                string += f"max_value:{hp.upper},"
+            else:
+                raise ValueError(f"Unsupported hyperparameter type: {type(hp)}")
+            string += "}"
+
+        return string, hypers
+    
+    def encode_trials(self, history, hypers):
+        """
+        Encode the trials data.
+        
+        Args:
+            history: History object containing the trials to format
+            hypers: List of (hp_name, hp) tuples in the order they should be encoded
+            
+        Returns:
+            Formatted trials string
+        """
+        string = ""
+        if len(history.trials) > 0:
+            y_min = min(trial.metric for trial in history.trials)
+            y_max = max(trial.metric for trial in history.trials)
+            if y_min == y_max:
+                y_max += 1  # Avoid division by zero in quantization
+            for trial in history.trials:
+                for i, (hp_name, hp) in enumerate(hypers):
+                    if not isinstance(hp, Domain):
+                        warnings.warn(f"Skipping unsupported hyperparameter type: {type(hp)}")
+                        continue
+                    if i > 0:
+                        string += self.hp_sep
+                    hp_encoded = history.encode(trial.config[hp_name], hp, hp_name)
+                    string += str(hp_encoded)
+                string += self.metric_sep
+                metric_token = self.value_to_txt(trial.metric, hp=None, hp_name="metric", x_min=y_min, x_max=y_max)
+                string += str(metric_token)
+                string += self.trial_sep
+        return string
+    
 
 class OptformerConverter(Converter):
     """Converter that formats tokens as <VALUE> instead of plain numbers"""
@@ -123,9 +206,58 @@ class OptformerConverter(Converter):
 
     def get_user_defined_symbols(self):
         base_symbols = ['name', 'algorithm', 'benchmark', 'type',
-                       'CAT', 'UNI', 'INT', "|", "&", "*", ",", "<", ">"]
+                       'CAT', 'UNI', 'INT', "LOGUNI", "LOGINT", "|", "&", "*", ",", "<", ">"]
         special_optformer_tokens = [f"<{i}>" for i in range(self.q + 1)]
         return base_symbols + special_optformer_tokens
+    
+    def encode_problem_definition(self, history, shuffle=False):
+        """
+        Encode the problem definition (benchmark, algorithm, hyperparameters).
+        
+        Args:
+            history: History object containing the data to format
+            shuffle: Whether to shuffle the order of hyperparameters
+            
+        Returns:
+            Formatted problem definition string (without header separator)
+        """
+        string = f"benchmark:{history.name},"
+        string += f"algorithm:{history.algorithm}"
+        # ignore objective and goal as they are fixed for all problems
+        # string += f"objective:single_objective,"
+        # string += f"goal:mimization"
+
+        string += "&&"
+
+        hypers = list(history.config_space.items())
+        if shuffle:
+            random.shuffle(hypers)
+        for idx, (hp_name, hp) in enumerate(hypers):
+            if idx > 0:
+                string += "*"
+            string += f"name:{hp_name},"
+
+            if isinstance(hp, Categorical):
+                string += "type:CAT,"
+                string += f"categories:{hp.categories}".replace(" ", "")
+            elif isinstance(hp, (Float, Integer)):
+                hp_type = "LOGUNI" if is_log_space(hp) and isinstance(hp, Float) else \
+                          "LOGINT" if is_log_space(hp) and isinstance(hp, Integer) else \
+                          "UNI" if isinstance(hp, Float) else "INT"
+                string += f"type:{hp_type},"
+                string += f"min_value:{hp.lower},"
+                string += f"max_value:{hp.upper}"
+            elif isinstance(hp, FiniteRange):
+                string += "type:INT," if getattr(hp, 'cast_int', False) else "type:UNI,"
+                string += f"min_value:{hp.lower},"
+                string += f"max_value:{hp.upper}"
+            else:
+                raise ValueError(f"Unsupported hyperparameter type: {type(hp)}")
+
+        return string, hypers
+    
+    
+
 
 
 # ============================================================================
@@ -156,61 +288,10 @@ class History:
         return self.converter.value_to_txt(x, hp=hp, hp_name=hp_name)
 
     def get_prompt(self, shuffle=False):
-        string = f"benchmark:{self.name},"
-        string += f"algorithm:{self.algorithm},"
-
-        hypers = list(self.config_space.items())
-        if shuffle:
-            random.shuffle(hypers)
-        for hp_name, hp in hypers:
-            string += f"parameter:"
-            string += "{"
-            string += f"name:{hp_name},"
-
-            if isinstance(hp, Categorical):
-
-                string += f"type:CAT,"
-                string += f"categories:{hp.categories},".replace(" ", "")
-            elif isinstance(hp, Float):
-                    string += f"type:UNI,"
-                    string += f"min_value:{hp.lower},"
-                    string += f"max_value:{hp.upper},"
-            elif isinstance(hp, Integer):
-                    string += f"type:INT,"
-                    string += f"min_value:{hp.lower},"
-                    string += f"max_value:{hp.upper},"
-            elif isinstance(hp, FiniteRange):
-                if hp.cast_int:
-                    string += f"type:INT,"
-                else:
-                    string += f"type:UNI,"
-                string += f"min_value:{hp.lower},"
-                string += f"max_value:{hp.upper},"
-            else:
-                raise ValueError(f"Unsupported hyperparameter type: {type(hp)}")
-            string += "}"
-
-        string += self.converter.header_sep
-
-        if len(self.trials) > 0:
-            y_min = min(trial.metric for trial in self.trials)
-            y_max = max(trial.metric for trial in self.trials)
-            if y_min == y_max:
-                y_max += 1  # Avoid division by zero in quantization
-            for trial in self.trials:
-                for i, (hp_name, hp) in enumerate(hypers):
-                    if not isinstance(hp, Domain):
-                        warnings.warn(f"Skipping unsupported hyperparameter type: {type(hp)}")
-                        continue
-                    if i > 0:
-                        string += self.converter.hp_sep
-                    hp_encoded = self.encode(trial.config[hp_name], hp, hp_name)
-                    string += str(hp_encoded)
-                string += self.converter.metric_sep
-                metric_token = self.converter.value_to_txt(trial.metric, hp=None, hp_name="metric", x_min=y_min, x_max=y_max)
-                string += str(metric_token)
-                string += self.converter.trial_sep
-        return string
+        """Generate a prompt string using the converter's prompt generation logic."""
+        problem_def, hypers = self.converter.encode_problem_definition(self, shuffle=shuffle)
+        trials_str = self.converter.encode_trials(self, hypers)
+        return problem_def + self.converter.header_sep + trials_str
     
     @classmethod
     def from_syne_tune_experiment(cls, experiment: ExperimentResult, 

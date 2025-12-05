@@ -49,15 +49,25 @@ def test_history():
         history.add_trial({'x': 0.6, 'y': 6, 'z': 'b'}, 0.6)
         prompt = history.get_prompt()
         assert isinstance(prompt, str)
-        assert 'benchmark:test' in prompt
-        assert 'algorithm:test' in prompt
-        assert 'parameter:{name:x,type:UNI,min_value:0,max_value:1,}' in prompt
-        assert 'parameter:{name:y,type:INT,min_value:0,max_value:10,}' in prompt
-        assert "parameter:{name:z,type:CAT,categories:['a','b','c'],}" in prompt
+        
         if isinstance(converter, OptformerConverter):
-            assert '<500><500><0>*<0>|<600><600><1>*<1000>' in prompt
-        else:
-            assert '500,500,0*0|600,600,1*1000' in prompt
+            assert (
+                "benchmark:test,algorithm:test" \
+                "&&name:x,type:UNI,min_value:0,max_value:1" \
+                "*name:y,type:INT,min_value:0,max_value:10" \
+                "*name:z,type:CAT,categories:['a','b','c']" \
+                "&<500><500><0>*<0>|<600><600><1>*<1000>|"
+                == prompt
+            )
+        elif isinstance(converter, Converter):
+            assert (
+                "benchmark:test,algorithm:test," \
+                "parameter:{name:x,type:UNI,min_value:0,max_value:1,}" \
+                "parameter:{name:y,type:INT,min_value:0,max_value:10,}" \
+                "parameter:{name:z,type:CAT,categories:['a','b','c'],}" \
+                "&500,500,0*0|600,600,1*1000|"
+                == prompt
+            )
         
 def test_trial():
     trial = Trial(config={'x': 0.5}, metric=0.5)
