@@ -6,19 +6,35 @@ from syne_tune.experiments import load_experiment
 from syne_tune.config_space import randint, uniform, choice
 from syne_tune.constants import SYNE_TUNE_ENV_FOLDER
 
-from open_optformer.history import History, Trial, encode, quantize, preprocess
+from open_optformer.history import History, Trial, Converter, OptformerConverter, preprocess
 
-def test_quantize():
-    assert quantize(0.5, 0, 1) == 500
-    assert quantize(0, 0, 1) == 0
-    assert quantize(1, 0, 1) == 1000
+def test_value_to_txt():
+    """Test Converter.value_to_txt() and OptformerConverter.value_to_txt() methods"""
+    for converter in [Converter(q=1000), OptformerConverter(q=1000)]:
+        if isinstance(converter, OptformerConverter):
+            assert converter.value_to_txt(0.5, hp=uniform(0, 1)) == "<500>"
+            assert converter.value_to_txt(0, hp=uniform(0, 1)) == "<0>"
+            assert converter.value_to_txt(1, hp=uniform(0, 1)) == "<1000>"
+        else:
+            assert converter.value_to_txt(0.5, hp=uniform(0, 1)) == "500"
+            assert converter.value_to_txt(0, hp=uniform(0, 1)) == "0"
+            assert converter.value_to_txt(1, hp=uniform(0, 1)) == "1000"
 
 
 def test_encode():
-    assert encode(0.5, uniform(0, 1)) == 500
-    assert encode(5, randint(0, 10)) == 500
-    assert encode('a', choice(['a', 'b', 'c'])) == 0
-    assert encode('c', choice(['a', 'b', 'c'])) == 2
+    """Test History.encode() method (generic for Converter and OptformerConverter)"""
+    for converter in [Converter(q=1000), OptformerConverter(q=1000)]:
+        history = History(name="", algorithm="", config_space={}, converter=converter)
+        if isinstance(converter, OptformerConverter):
+            assert history.encode(0.5, uniform(0, 1)) == "<500>"
+            assert history.encode(5, randint(0, 10)) == "<500>"
+            assert history.encode('a', choice(['a', 'b', 'c'])) == "<0>"
+            assert history.encode('c', choice(['a', 'b', 'c'])) == "<2>"
+        else:
+            assert history.encode(0.5, uniform(0, 1)) == "500"
+            assert history.encode(5, randint(0, 10)) == "500"
+            assert history.encode('a', choice(['a', 'b', 'c'])) == "0"
+            assert history.encode('c', choice(['a', 'b', 'c'])) == "2"
 
 
 def test_history():
@@ -27,18 +43,22 @@ def test_history():
         'y': randint(0, 10),
         'z': choice(['a', 'b', 'c'])
     }
-    history = History(name='test', algorithm='test', config_space=config_space)
-    history.add_trial({'x': 0.5, 'y': 5, 'z': 'a'}, 0.5)
-    history.add_trial({'x': 0.6, 'y': 6, 'z': 'b'}, 0.6)
-    prompt = history.get_prompt()
-    assert isinstance(prompt, str)
-    assert 'benchmark:test' in prompt
-    assert 'algorithm:test' in prompt
-    assert 'parameter:{name:x,type:UNI,min_value:0,max_value:1,}' in prompt
-    assert 'parameter:{name:y,type:Int,min_value:0,max_value:10,}' in prompt
-    assert "parameter:{name:z,type:CAT,categories:['a','b','c'],}" in prompt
-    assert '&500,500,0*0|600,600,1*1000|' in prompt
-    
+    for converter in [Converter(q=1000), OptformerConverter(q=1000)]:
+        history = History(name='test', algorithm='test', config_space=config_space, converter=converter)
+        history.add_trial({'x': 0.5, 'y': 5, 'z': 'a'}, 0.5)
+        history.add_trial({'x': 0.6, 'y': 6, 'z': 'b'}, 0.6)
+        prompt = history.get_prompt()
+        assert isinstance(prompt, str)
+        assert 'benchmark:test' in prompt
+        assert 'algorithm:test' in prompt
+        assert 'parameter:{name:x,type:UNI,min_value:0,max_value:1,}' in prompt
+        assert 'parameter:{name:y,type:INT,min_value:0,max_value:10,}' in prompt
+        assert "parameter:{name:z,type:CAT,categories:['a','b','c'],}" in prompt
+        if isinstance(converter, OptformerConverter):
+            assert '<500><500><0>*<0>|<600><600><1>*<1000>' in prompt
+        else:
+            assert '500,500,0*0|600,600,1*1000' in prompt
+        
 def test_trial():
     trial = Trial(config={'x': 0.5}, metric=0.5)
     assert trial.config == {'x': 0.5}

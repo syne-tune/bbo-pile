@@ -1,4 +1,4 @@
-
+26325846
 # Open Optformer
 
 ## Installation
@@ -49,15 +49,17 @@ And the input path to the results of the benchmarks, e.g.:
 
 ### Data Processing
 
+First, set $CONVERTER environment variable to either "plain" or "optformer" (Chen et al, NeurIPS 2022). 
+
 From the root of the repository, run the following commands to process the data:
 
 First to compile the results into a dataset
 
-    python benchmarks/syne_tune_benchmarks/generate_training_data/compile_data.py --path $RESULTS_PATH --output_path $BASE_PATH/data/raw
+    python benchmarks/syne_tune_benchmarks/generate_training_data/compile_data.py --path $RESULTS_PATH --output_path $BASE_PATH/data/raw --converter $CONVERTER
 
 Now we can train the tokenizer
 
-    python train_tokenizer.py --input_folder $BASE_PATH/data/raw/ --output_path $BASE_PATH/tokenizer --vocab_size 1049
+    python train_tokenizer.py --input_folder $BASE_PATH/data/raw/ --output_path $BASE_PATH/tokenizer --vocab_size 1074 --converter $CONVERTER
 
 And pre-process the dataset to a litdata format, which is required for training the model
 

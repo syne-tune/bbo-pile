@@ -11,7 +11,7 @@ from litgpt.config import Config
 from litgpt.tokenizer import Tokenizer
 from litgpt.model import GPT
 
-from open_optformer.history import History, preprocess, dequantize
+from open_optformer.history import History, preprocess
 
 from syne_tune.config_space import Integer, Categorical, Float, FiniteRange
 from syne_tune.optimizer.schedulers.searchers.single_objective_searcher import SingleObjectiveBaseSearcher
@@ -174,6 +174,9 @@ class OptFormerSearcher(SingleObjectiveBaseSearcher):
         prefill_token = True
         config = {}
 
+        converter = self.study.converter
+        q = converter.q
+
         for hp_name, hp in self.config_space.items():
             logits = self.model(token.view(1, -1),
                                 input_pos,
@@ -181,11 +184,12 @@ class OptFormerSearcher(SingleObjectiveBaseSearcher):
 
             if isinstance(hp, (Float, Integer, FiniteRange)):
                 # pick value in [0, Q] with the highest probability
-                idx = torch.tensor([self.tokenizer.encode(str(i))[-1] for i in range(1000)], dtype=torch.int)
+                idx = torch.tensor([self.tokenizer.encode(str(i))[-1] for i in range(q + 1)], dtype=torch.int)
                 token = select_token(logits, idx)
                 value = int(self.tokenizer.decode(token))
                 token = torch.tensor([token])
-                config[hp_name] = dequantize(value, hp.lower, hp.upper, q=1000)
+                # Use converter's txt_to_value method
+                config[hp_name] = converter.txt_to_value(str(value), hp=hp, hp_name=hp_name)
 
             elif isinstance(hp, Categorical):
                 #  pick the category with the highest probability
