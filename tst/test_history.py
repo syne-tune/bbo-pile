@@ -1,43 +1,202 @@
 import os
 import tempfile
+import pytest
 
 from syne_tune.experiments import load_experiment
 
-from syne_tune.config_space import randint, uniform, choice
+from syne_tune.config_space import randint, uniform, choice, loguniform, lograndint, FiniteRange
 from syne_tune.constants import SYNE_TUNE_ENV_FOLDER
 
 from open_optformer.history import History, Trial, Converter, OptformerConverter, preprocess
 
-def test_value_to_txt():
-    """Test Converter.value_to_txt() and OptformerConverter.value_to_txt() methods"""
+
+# ============================================================================
+# Converter.value_to_txt() Tests
+# ============================================================================
+
+def test_value_to_txt_different_q():
+    """Test value_to_txt with different quantization values"""
+    for q in [100, 500, 1000, 2000]:
+        converter = Converter(q=q)
+        assert converter.value_to_txt(0.5, hp=uniform(0, 1)) == str(int(0.5 * q))
+        
+        optformer_converter = OptformerConverter(q=q)
+        assert optformer_converter.value_to_txt(0.5, hp=uniform(0, 1)) == f"<{int(0.5 * q)}>"
+
+
+def test_value_to_txt_integer_hyperparameters():
+    """Test value_to_txt with integer hyperparameters"""
+    for converter in [Converter(q=1000), OptformerConverter(q=1000)]:
+        hp = randint(0, 10)
+        if isinstance(converter, OptformerConverter):
+            assert converter.value_to_txt(0, hp=hp) == "<0>"
+            assert converter.value_to_txt(5, hp=hp) == "<500>"
+            assert converter.value_to_txt(10, hp=hp) == "<1000>"
+        else:
+            assert converter.value_to_txt(0, hp=hp) == "0"
+            assert converter.value_to_txt(5, hp=hp) == "500"
+            assert converter.value_to_txt(10, hp=hp) == "1000"
+
+
+def test_value_to_txt_categorical():
+    """Test value_to_txt with categorical hyperparameters"""
+    for converter in [Converter(q=1000), OptformerConverter(q=1000)]:
+        hp = choice(['a', 'b', 'c', 'd'])
+        if isinstance(converter, OptformerConverter):
+            assert converter.value_to_txt('a', hp=hp) == "<0>"
+            assert converter.value_to_txt('b', hp=hp) == "<1>"
+            assert converter.value_to_txt('c', hp=hp) == "<2>"
+            assert converter.value_to_txt('d', hp=hp) == "<3>"
+        else:
+            assert converter.value_to_txt('a', hp=hp) == "0"
+            assert converter.value_to_txt('b', hp=hp) == "1"
+            assert converter.value_to_txt('c', hp=hp) == "2"
+            assert converter.value_to_txt('d', hp=hp) == "3"
+
+
+
+def test_value_to_txt_metrics():
+    """Test value_to_txt for metrics (hp=None, x_min/x_max provided)"""
     for converter in [Converter(q=1000), OptformerConverter(q=1000)]:
         if isinstance(converter, OptformerConverter):
-            assert converter.value_to_txt(0.5, hp=uniform(0, 1)) == "<500>"
-            assert converter.value_to_txt(0, hp=uniform(0, 1)) == "<0>"
-            assert converter.value_to_txt(1, hp=uniform(0, 1)) == "<1000>"
+            assert converter.value_to_txt(0.5, hp=None, x_min=0.0, x_max=1.0) == "<500>"
+            assert converter.value_to_txt(0.0, hp=None, x_min=0.0, x_max=1.0) == "<0>"
+            assert converter.value_to_txt(1.0, hp=None, x_min=0.0, x_max=1.0) == "<1000>"
         else:
-            assert converter.value_to_txt(0.5, hp=uniform(0, 1)) == "500"
-            assert converter.value_to_txt(0, hp=uniform(0, 1)) == "0"
-            assert converter.value_to_txt(1, hp=uniform(0, 1)) == "1000"
+            assert converter.value_to_txt(0.5, hp=None, x_min=0.0, x_max=1.0) == "500"
+            assert converter.value_to_txt(0.0, hp=None, x_min=0.0, x_max=1.0) == "0"
+            assert converter.value_to_txt(1.0, hp=None, x_min=0.0, x_max=1.0) == "1000"
 
 
-def test_encode():
-    """Test History.encode() method (generic for Converter and OptformerConverter)"""
+def test_value_to_txt_metrics_missing_bounds():
+    """Test value_to_txt for metrics raises error when x_min/x_max not provided"""
     for converter in [Converter(q=1000), OptformerConverter(q=1000)]:
-        history = History(name="", algorithm="", config_space={}, converter=converter)
+        with pytest.raises(ValueError, match="x_min and x_max must be provided"):
+            converter.value_to_txt(0.5, hp=None)
+
+
+def test_value_to_txt_log_scale():
+    """Test value_to_txt with log-scale hyperparameters"""
+    for converter in [Converter(q=1000), OptformerConverter(q=1000)]:
+        # Test loguniform
+        hp = loguniform(1e-3, 1.0)
+        # Log scale should handle values correctly
+        val = 0.1
+        txt = converter.value_to_txt(val, hp=hp)
+        assert txt is not None
+        # Verify round-trip works
+        recovered = converter.txt_to_value(txt, hp=hp)
+        assert abs(val - recovered) < 0.01, f"Log scale round-trip failed: {val} -> {txt} -> {recovered}"
+        
+        # Test lograndint
+        hp_int = lograndint(1, 100)
+        val_int = 10
+        txt_int = converter.value_to_txt(val_int, hp=hp_int)
+        assert txt_int is not None
+        recovered_int = converter.txt_to_value(txt_int, hp=hp_int)
+        assert abs(val_int - recovered_int) < 1, f"Log scale integer round-trip failed: {val_int} -> {txt_int} -> {recovered_int}"
+
+
+# ============================================================================
+# Converter.txt_to_value() Tests
+# ============================================================================
+
+def test_txt_to_value_basic():
+    """Test txt_to_value with basic conversions - exact values where quantization allows"""
+    for converter in [Converter(q=1000), OptformerConverter(q=1000)]:
+        hp = uniform(0, 1)
         if isinstance(converter, OptformerConverter):
-            assert history.encode(0.5, uniform(0, 1)) == "<500>"
-            assert history.encode(5, randint(0, 10)) == "<500>"
-            assert history.encode('a', choice(['a', 'b', 'c'])) == "<0>"
-            assert history.encode('c', choice(['a', 'b', 'c'])) == "<2>"
+            assert converter.txt_to_value("<500>", hp=hp) == 0.5
+            assert converter.txt_to_value("<0>", hp=hp) == 0.0
+            assert converter.txt_to_value("<1000>", hp=hp) == 1.0
         else:
-            assert history.encode(0.5, uniform(0, 1)) == "500"
-            assert history.encode(5, randint(0, 10)) == "500"
-            assert history.encode('a', choice(['a', 'b', 'c'])) == "0"
-            assert history.encode('c', choice(['a', 'b', 'c'])) == "2"
+            assert converter.txt_to_value("500", hp=hp) == 0.5
+            assert converter.txt_to_value("0", hp=hp) == 0.0
+            assert converter.txt_to_value("1000", hp=hp) == 1.0
 
 
-def test_history():
+def test_txt_to_value_categorical():
+    """Test txt_to_value with categorical hyperparameters"""
+    for converter in [Converter(q=1000), OptformerConverter(q=1000)]:
+        hp = choice(['a', 'b', 'c', 'd'])
+        if isinstance(converter, OptformerConverter):
+            assert converter.txt_to_value("<0>", hp=hp) == 'a'
+            assert converter.txt_to_value("<1>", hp=hp) == 'b'
+            assert converter.txt_to_value("<2>", hp=hp) == 'c'
+            assert converter.txt_to_value("<3>", hp=hp) == 'd'
+        else:
+            assert converter.txt_to_value("0", hp=hp) == 'a'
+            assert converter.txt_to_value("1", hp=hp) == 'b'
+            assert converter.txt_to_value("2", hp=hp) == 'c'
+            assert converter.txt_to_value("3", hp=hp) == 'd'
+
+
+def test_txt_to_value_metrics():
+    """Test txt_to_value for metrics - exact values where quantization allows"""
+    for converter in [Converter(q=1000), OptformerConverter(q=1000)]:
+        if isinstance(converter, OptformerConverter):
+            assert converter.txt_to_value("<500>", hp=None, x_min=0.0, x_max=1.0) == 0.5
+            assert converter.txt_to_value("<0>", hp=None, x_min=0.0, x_max=1.0) == 0.0
+            assert converter.txt_to_value("<1000>", hp=None, x_min=0.0, x_max=1.0) == 1.0
+        else:
+            assert converter.txt_to_value("500", hp=None, x_min=0.0, x_max=1.0) == 0.5
+            assert converter.txt_to_value("0", hp=None, x_min=0.0, x_max=1.0) == 0.0
+            assert converter.txt_to_value("1000", hp=None, x_min=0.0, x_max=1.0) == 1.0
+
+
+def test_txt_to_value_metrics_missing_bounds():
+    """Test txt_to_value for metrics raises error when x_min/x_max not provided"""
+    for converter in [Converter(q=1000), OptformerConverter(q=1000)]:
+        with pytest.raises(ValueError, match="x_min and x_max must be provided"):
+            if isinstance(converter, OptformerConverter):
+                converter.txt_to_value("<500>", hp=None)
+            else:
+                converter.txt_to_value("500", hp=None)
+
+
+def test_round_trip_conversion():
+    """Test round-trip conversion: value -> txt -> value - exact where quantization allows and with inexact decimal cases"""
+    for converter in [Converter(q=1000), OptformerConverter(q=1000)]:
+        hp = uniform(0, 1)
+        val = 0.123456
+        txt = converter.value_to_txt(val, hp=hp)
+        recovered = converter.txt_to_value(txt, hp=hp)
+        quantization_interval = 1.0 / converter.q
+        assert abs(val - recovered) <= quantization_interval / 2, \
+            f"Inexact quantization round-trip failed: {val} -> {txt} -> {recovered} (allowed tolerance {quantization_interval/2})"
+        
+        val = 0.999999
+        txt = converter.value_to_txt(val, hp=hp)
+        recovered = converter.txt_to_value(txt, hp=hp)
+        quantization_interval = 1.0 / converter.q
+        assert abs(val - recovered) <= quantization_interval, \
+            f"Inexact quantization round-trip failed: {val} -> {txt} -> {recovered} (allowed tolerance {quantization_interval/2})"
+
+        val = 1.0
+        txt = converter.value_to_txt(val, hp=hp)
+        recovered = converter.txt_to_value(txt, hp=hp)
+        assert val == recovered, f"Round-trip failed for {val}: {txt} -> {recovered}"
+
+
+def test_optformer_parse_token_invalid():
+    """Test OptformerConverter._parse_token with invalid format"""
+    converter = OptformerConverter(q=1000)
+    with pytest.raises(AssertionError, match="Token string must start with"):
+        converter._parse_token("500")  # Missing angle brackets
+    
+    with pytest.raises(AssertionError, match="Token string must start with"):
+        converter._parse_token("500>")  # Missing opening bracket
+    
+    with pytest.raises(AssertionError, match="Token string must start with"):
+        converter._parse_token("<500")  # Missing closing bracket
+
+
+# ============================================================================
+# History.get_prompt() Tests
+# ============================================================================
+
+def test_history_basic():
+    """Test History.get_prompt() with basic configuration"""
     config_space = {
         'x': uniform(0, 1),
         'y': randint(0, 10),
@@ -68,7 +227,67 @@ def test_history():
                 "&500,500,0*0|600,600,1*1000|"
                 == prompt
             )
+
+
+def test_history_trial_count_from_prompt():
+    """Test that the number of trials in the prompt matches the number added to History"""
+    config_space = {
+        'x': uniform(0, 1),
+        'y': randint(0, 10),
+    }
+    for converter in [Converter(q=1000), OptformerConverter(q=1000)]:
+        history = History(name='test', algorithm='test', config_space=config_space, converter=converter)
+
+        for nb_trials in [0, 2, 10]:
+            for i in range(nb_trials):
+                history.add_trial({'x': config_space['x'].sample(), 'y': config_space['y'].sample()}, i)
+        prompt = history.get_prompt()
+        prompt_trials = prompt.split("&")[-1]
+        prompt_trials = prompt_trials[:-1].split("|")
+        assert len(prompt_trials) == len(history.trials)
+
+def test_history_parameter_count_from_prompt():
+    """Test that the number of parameters in the prompt matches the number of parameters in the config space"""
+    for converter in [Converter(q=1000), OptformerConverter(q=1000)]:
+        for nb_parameters in [1, 2, 10]:
+            config_space = {f'x_{i}': uniform(0, 1) for i in range(nb_parameters)}
+            history = History(name='test', algorithm='test', config_space=config_space, converter=converter)
+            history.add_trial({f'x_{i}': 0.5 for i in range(nb_parameters)}, 0.5)
+            prompt = history.get_prompt()
+            if isinstance(converter, OptformerConverter):
+                prompt_parameters = prompt.split("&")[-2].split("*")
+            elif isinstance(converter, Converter):
+                prompt_parameters = prompt.split("&")[-2].split("parameter:")[1:]
+            assert len(prompt_parameters) == nb_parameters
+
+def test_history_shuffle():
+    """Test History.get_prompt() with shuffle parameter"""
+    config_space = {
+        'x': uniform(0, 1),
+        'y': randint(0, 10),
+        'z': choice(['a', 'b', 'c'])
+    }
+    for converter in [Converter(q=1000), OptformerConverter(q=1000)]:
+        history = History(name='test', algorithm='test', config_space=config_space, converter=converter)
+        history.add_trial({'x': 0.5, 'y': 5, 'z': 'a'}, 0.5)
         
+        # Get prompts with and without shuffle
+        prompt_no_shuffle = history.get_prompt(shuffle=False)
+        prompt_shuffle1 = history.get_prompt(shuffle=True)
+        prompt_shuffle2 = history.get_prompt(shuffle=True)
+        
+        # Without shuffle should be deterministic
+        assert prompt_no_shuffle == history.get_prompt(shuffle=False)
+        
+        # With shuffle, problem definition may differ but should be valid
+        assert isinstance(prompt_shuffle1, str)
+        assert isinstance(prompt_shuffle2, str)
+        assert 'benchmark:test' in prompt_shuffle1
+        assert 'algorithm:test' in prompt_shuffle1
+
+
+# ============================================================================
+
 def test_trial():
     trial = Trial(config={'x': 0.5}, metric=0.5)
     assert trial.config == {'x': 0.5}
@@ -78,6 +297,7 @@ def test_preprocess():
     prompt = 'parameter "trial" '
     processed_prompt = preprocess(prompt)
     assert processed_prompt == ''
+
 
 def test_from_syne_tune_experiment():
     from syne_tune import Tuner, StoppingCriterion
@@ -134,4 +354,3 @@ def test_from_syne_tune_experiment():
         history = History.from_syne_tune_experiment(experiment)
 
         assert len(history.trials) == 1
-
