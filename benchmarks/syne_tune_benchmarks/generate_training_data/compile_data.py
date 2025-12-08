@@ -74,10 +74,11 @@ if __name__ == "__main__":
     os.makedirs(output_path, exist_ok=True)
     experiment_filter = None
 
-    validation_tasks = json.load(open('validation_tasks.json'))
+    current_dir = os.path.dirname(os.path.abspath(__file__))
+    validation_tasks = json.load(open(os.path.join(current_dir, 'validation_tasks.json')))
     validation_tasks = list(itertools.chain.from_iterable(validation_tasks.values()))
 
-    converter = OptformerConverter(q=args.quantization_levels) if args.converter == "optformer" else Converter(q=args.quantization_levels)
+    converter = OptformerConverter(q=1000) if args.converter == "optformer" else Converter(q=1000)
 
     with catchtime("load benchmark results"):
 
