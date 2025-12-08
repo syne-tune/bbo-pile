@@ -35,12 +35,6 @@ if __name__ == "__main__":
         default=7000000,
     )
     parser.add_argument(
-        "--quantization_levels",
-        type=int,
-        default=1000,
-        help="Number of quantization levels (q parameter)",
-    )
-    parser.add_argument(
         "--converter",
         type=str,
         required=True,
@@ -51,9 +45,9 @@ if __name__ == "__main__":
 
     # Instantiate converter for user-defined symbols
     if args.converter == "optformer":
-        converter = OptformerConverter(q=args.quantization_levels)
+        converter = OptformerConverter(q=1000)
     else:
-        converter = Converter(q=args.quantization_levels)
+        converter = Converter(q=1000)
     user_defined_symbols = converter.get_user_defined_symbols()
 
     input_folder = Path(args.input_folder)
