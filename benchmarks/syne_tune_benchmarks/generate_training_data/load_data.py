@@ -8,7 +8,7 @@ from json import JSONDecodeError
 
 from syne_tune.experiments import ExperimentResult
 from syne_tune.config_space import config_space_from_json_dict
-from open_optformer.history import History, preprocess
+from open_optformer.history import History, preprocess, Converter
 
 
 def load_result(name, metric_name, config_space, path):
@@ -20,17 +20,18 @@ def load_result(name, metric_name, config_space, path):
         return None
 
 
-def create_history_from_results(name, metadata, path: Path, max_num_trials: int, n_permutation: int = 0) -> [str]:
+def create_history_from_results(name, metadata, path: Path, max_num_trials: int, n_permutation: int = 0, converter: Converter = Converter()) -> [str]:
     config_space = config_space_from_json_dict(json.loads(metadata['config_space']))
     metric_name = metadata["metric_names"][0]
     res = load_result(name, metric_name, config_space, path)
 
-    hist = History.from_syne_tune_experiment(ExperimentResult(name=name,
-                                                              metadata=metadata,
-                                                              results=res,
-                                                              path=path,
-                                                              tuner=None),
-                                             max_num_trials=max_num_trials)
+    hist = History.from_syne_tune_experiment(experiment=ExperimentResult(name=name,
+                                                                       metadata=metadata,
+                                                                       results=res,
+                                                                       path=path,
+                                                                       tuner=None),
+                                             max_num_trials=max_num_trials,
+                                             converter=converter)
     traj = []
     traj.append(preprocess(hist.get_prompt()))
     for i in range(n_permutation):
