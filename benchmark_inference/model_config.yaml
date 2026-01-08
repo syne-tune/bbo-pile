@@ -1,0 +1,46 @@
+attention_logit_softcapping: null
+attention_scores_scalar: null
+attn_bias: false
+bias: false
+block_size: 40960
+final_logit_softcapping: null
+gelu_approximate: none
+head_size: 32
+hf_config:
+  name: Qwen3-50M
+  org: Qwen
+intermediate_size: 3072
+latent_attention: null
+lm_head_bias: false
+mlp_class_name: LLaMAMLP
+moe_intermediate_size: null
+n_embd: 512
+n_expert: 0
+n_expert_per_token: 0
+n_head: 16
+n_layer: 10
+n_query_groups: 4
+name: Qwen3-50M
+norm_1: true
+norm_2: true
+norm_class_name: RMSNorm
+norm_eps: 1.0e-06
+norm_qk: true
+norm_qk_type: default
+padded_vocab_size: 1185
+padding_multiple: 512
+parallel_residual: false
+post_attention_norm: false
+post_mlp_norm: false
+rope_adjustments: null
+rope_base: 1000000
+rope_condense_ratio: 1
+rope_indices: null
+rope_local_base_freq: null
+rotary_percentage: 1.0
+scale_embeddings: false
+shared_attention_norm: false
+sliding_window_indices: null
+sliding_window_size: null
+vocab_size: 1185
+
