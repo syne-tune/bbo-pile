@@ -136,7 +136,7 @@ class OptFormerSearcher(SingleObjectiveBaseSearcher):
         self.num_categorical_tokens = num_categorical_tokens
         self.n_sample_configurations = n_sample_configurations
         self.history = []
-
+        self.sampling = False if self.n_sample_configurations == 1 else True
         if task_info is None:
             self.task_info = {'name': "tst",
                               "algorithm": "BORE",
@@ -235,7 +235,7 @@ class OptFormerSearcher(SingleObjectiveBaseSearcher):
                     **inputs,
                     max_new_tokens=max_new_tokens,
                     num_return_sequences=self.n_sample_configurations,
-                    do_sample=True,
+                    do_sample=self.sampling,
                     eos_token_id=eos_token_id,
                     pad_token_id=self.tokenizer.pad_token_id,
                 )
@@ -270,7 +270,7 @@ class OptFormerSearcher(SingleObjectiveBaseSearcher):
                         model=self.model,
                         prompt=prompt_tokens,
                         max_returned_tokens=max_returned_tokens,
-                        include_prompt=False,
+                        include_prompt=self.sampling,
                         eos_id=self.tokenizer.token_to_id("|"),
                     ).tolist()
                     for _ in range(self.n_sample_configurations)
