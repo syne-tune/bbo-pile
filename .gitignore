@@ -1,0 +1,63 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg-info/
+*.egg
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+
+# Virtual environments
+.venv/
+venv/
+env/
+envs/
+
+# Build artifacts
+build/
+dist/
+*.whl
+
+# Generated configs (produced by configs/generate_configs.py)
+configs/qwen3_*_token_*_lr_*_bsz_*_seed_*.yaml
+
+# Experiment outputs / logs
+wandb/
+logs/
+outputs/
+checkpoints/
+results/
+*.log
+
+# Plot / artifact outputs
+scripts/**/plots/
+scripts/**/pdf/
+scripts/**/csv/
+scripts/**/shards/
+scripts/**/.slurms/
+
+# Data caches
+data/
+*.parquet
+*.arrow
+*.bin
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# Notebooks
+.ipynb_checkpoints/
+
+# Secrets
+.env
+.env.local
+*.pem

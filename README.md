@@ -1,33 +1,49 @@
-
 # BBO-Pile: A Dataset for Pre-training Open Foundation Models for Black-box Optimization
+
+This repository contains code for data generation and training models on BBO-Pile.
+
+> **NeurIPS 2026 Evaluations & Datasets Track submission.** Anonymized for double-blind review.
+
+- [Installation](#installation)
+- [Generate BBO-Pile from Scratch](#generate-bbo-pile-from-scratch)
+- [Train Models from Scratch](#train-models-from-scratch)
+- [Evaluate a Trained Model](#evaluate-a-trained-model)
+- [License](#license)
+
+---
 
 ## Installation
 
-Install the required packages by running the following command from the main directory:
+This project is managed with [uv](https://github.com/astral-sh/uv) (assumed to be on `PATH`). Clone and sync the locked environment:
 
-    pip install -r requirements.txt
+```bash
+git clone <ANONYMIZED_REPO_URL>
+cd open_optformer
+uv sync
+source .venv/bin/activate
+```
 
-Furthermore, you need to install the following packages, if you want to install the original optformer code:
+**Tested on**: Linux x86_64, Python 3.10.12, CUDA 12.x.
 
-    pip install -r requirements.txt
-    pip install git+https://github.com/google-research/t5x.git@a9b8f1563eac10aa18f4fe384959733a6ae7e4ea --no-deps
-    pip install git+https://github.com/google-research/optformer.git@12e2639954b0cd9bf824aab2d040650e6b32089c tensorflow-cpu==2.15.1
+---
 
-## Syne Tune Benchmarks
+## Generate BBO-Pile from Scratch
 
-To run the benchmark locally, first go to the syne_tune_benchmarks folder
 
-    cd benchmarks/syne-tune-benchmarks
+Set core env variables:
 
-and run the following command:
+```bash
+export BASE_PATH=~/experiments/bbo-pile
+export VERSION=v0.8
+export RESULTS_PATH=~/syne-tune-results
+```
 
-    python benchmark_main.py --seed 5 --run_all_seeds 1 --n_workers 1 --method RS --benchmark fcnet-protein
+**Run an optimizer on a given task:**
 
-This will run random search with 5 seeds on the fcnet-protein benchmark.
-
-Alternatively, you can run the following command to submit the job to a cluster, which will run all benchmarks in the fcnet family:
-
-    python launch_slurmpilot.py --num_seeds 5 --n_workers 1 --benchmark_family fcnet --partition <your_partition> --cluster <your_cluster>
+```bash
+cd benchmarks/syne_tune_benchmarks
+python benchmark_main.py --seed 5 --run_all_seeds 1 --n_workers 1 --method RS --benchmark fcnet-protein
+```
 
 Available benchmark families are: 
 - fcnet 
@@ -37,132 +53,99 @@ Available benchmark families are:
 - hpob
 - tabrepo
 
-## Model Training
-
-Please make sure to set the environment variable `BASE_PATH` to the path where you want to store the data and models, e.g.:
-
-    export BASE_PATH=~/experiments/syne-tune-benchmarks
-
-And the input path to the results of the benchmarks, e.g.:
-
-    export RESULTS_PATH=~/syne-tune/results/
-
-### Data Processing
-
-If you want to (re-)generate a new version of the data, specify:
-
-    export VERSION=v0.5
-
-Then, switch to the directory:
-
-    cd generate_training_data
+**Data Processing**
 
 First to compile the results of all benchmark family into a dataset
+```bash
+cd generate_training_data
+python compile_data.py --path $RESULTS_PATH/fcnet/ --output_path $BASE_PATH/dataset/$VERSION/fcnet/ --remove_names
+python compile_data.py --path $RESULTS_PATH/masked_fcnet/ --output_path $BASE_PATH/dataset/$VERSION/masked_fcnet/ --remove_names
+python compile_data.py --path $RESULTS_PATH/masked_nas201/ --output_path $BASE_PATH/dataset/$VERSION/masked_nas201/ --remove_names
+python compile_data.py --path $RESULTS_PATH/global_optimization_benchmarks/ --output_path $BASE_PATH/dataset/$VERSION/global_optimization_benchmarks/ --remove_names
+python compile_data.py --path $RESULTS_PATH/hpob/ --output_path $BASE_PATH/dataset/$VERSION/hpob/ --remove_names
+python compile_data.py --path $RESULTS_PATH/lcbench/ --output_path $BASE_PATH/dataset/$VERSION/lcbench/ --remove_names
+python compile_data.py --path $RESULTS_PATH/nas201/ --output_path $BASE_PATH/dataset/$VERSION/nas201/ --remove_names
+python compile_data.py --path $RESULTS_PATH/pd1/ --output_path $BASE_PATH/dataset/$VERSION/pd1/ --remove_names
+python compile_data.py --path $RESULTS_PATH/tabrepo/ --output_path $BASE_PATH/dataset/$VERSION/tabrepo/ --remove_names
+``` 
 
-    python compile_data.py --path $RESULTS_PATH/fcnet/ --output_path $BASE_PATH/dataset/$VERSION/fcnet/ --remove_names
-    python compile_data.py --path $RESULTS_PATH/masked_fcnet/ --output_path $BASE_PATH/dataset/$VERSION/masked_fcnet/ --remove_names
-    python compile_data.py --path $RESULTS_PATH/masked_nas201/ --output_path $BASE_PATH/dataset/$VERSION/masked_nas201/ --remove_names
-    python compile_data.py --path $RESULTS_PATH/global_optimization_benchmarks/ --output_path $BASE_PATH/dataset/$VERSION/global_optimization_benchmarks/ --remove_names
-    python compile_data.py --path $RESULTS_PATH/hpob/ --output_path $BASE_PATH/dataset/$VERSION/hpob/ --remove_names
-    python compile_data.py --path $RESULTS_PATH/lcbench/ --output_path $BASE_PATH/dataset/$VERSION/lcbench/ --remove_names
-    python compile_data.py --path $RESULTS_PATH/nas201/ --output_path $BASE_PATH/dataset/$VERSION/nas201/ --remove_names
-    python compile_data.py --path $RESULTS_PATH/pd1/ --output_path $BASE_PATH/dataset/$VERSION/pd1/ --remove_names
-    python compile_data.py --path $RESULTS_PATH/tabrepo/ --output_path $BASE_PATH/dataset/$VERSION/tabrepo/ --remove_names
-
-Generate a new directory:
-
-    mkdir $BASE_PATH/dataset/$VERSION/all/
-
-Concat all datasets for training
-
-    python concat_text_files.py $BASE_PATH/dataset/$VERSION/fcnet/train.txt $BASE_PATH/dataset/$VERSION/nas201/train.txt $BASE_PATH/dataset/$VERSION/masked_fcnet/train.txt $BASE_PATH/dataset/$VERSION/masked_nas201/train.txt $BASE_PATH/dataset/$VERSION/hpob/train.txt $BASE_PATH/dataset/$VERSION/tabrepo/train.txt $BASE_PATH/dataset/$VERSION/pd1/train.txt $BASE_PATH/dataset/$VERSION/lcbench/train.txt $BASE_PATH/dataset/$VERSION/global_optimization_benchmarks/train.txt $BASE_PATH/dataset/$VERSION/all/unshuffled_train.txt
-
-
-and validation:
-
-    python concat_text_files.py $BASE_PATH/dataset/$VERSION/fcnet/valid.txt $BASE_PATH/dataset/$VERSION/nas201/valid.txt $BASE_PATH/dataset/$VERSION/masked_fcnet/valid.txt $BASE_PATH/dataset/$VERSION/masked_nas201/valid.txt $BASE_PATH/dataset/$VERSION/hpob/valid.txt $BASE_PATH/dataset/$VERSION/tabrepo/valid.txt $BASE_PATH/dataset/$VERSION/pd1/valid.txt $BASE_PATH/dataset/$VERSION/lcbench/valid.txt $BASE_PATH/dataset/$VERSION/global_optimization_benchmarks/valid.txt $BASE_PATH/dataset/$VERSION/all/unshuffled_valid.txt
-
-Change the directory:
-
-    cd $BASE_PATH/dataset/$VERSION/all/
-
-and shuffle the data
-    
-    shuf --random-source=<(yes 42) unshuffled_train.txt > train.txt
-    shuf --random-source=<(yes 42) unshuffled_valid.txt > valid.txt
+Concat all datasets for training and validation:
+```bash
+mkdir $BASE_PATH/dataset/$VERSION/all/
+python concat_text_files.py $BASE_PATH/dataset/$VERSION/fcnet/train.txt $BASE_PATH/dataset/$VERSION/nas201/train.txt $BASE_PATH/dataset/$VERSION/masked_fcnet/train.txt $BASE_PATH/dataset/$VERSION/masked_nas201/train.txt $BASE_PATH/dataset/$VERSION/hpob/train.txt $BASE_PATH/dataset/$VERSION/tabrepo/train.txt $BASE_PATH/dataset/$VERSION/pd1/train.txt $BASE_PATH/dataset/$VERSION/lcbench/train.txt $BASE_PATH/dataset/$VERSION/global_optimization_benchmarks/train.txt $BASE_PATH/dataset/$VERSION/all/unshuffled_train.txt
+python concat_text_files.py $BASE_PATH/dataset/$VERSION/fcnet/valid.txt $BASE_PATH/dataset/$VERSION/nas201/valid.txt $BASE_PATH/dataset/$VERSION/masked_fcnet/valid.txt $BASE_PATH/dataset/$VERSION/masked_nas201/valid.txt $BASE_PATH/dataset/$VERSION/hpob/valid.txt $BASE_PATH/dataset/$VERSION/tabrepo/valid.txt $BASE_PATH/dataset/$VERSION/pd1/valid.txt $BASE_PATH/dataset/$VERSION/lcbench/valid.txt $BASE_PATH/dataset/$VERSION/global_optimization_benchmarks/valid.txt $BASE_PATH/dataset/$VERSION/all/unshuffled_valid.txt
+```
 
 
-Now we can train the tokenizer
+Shuffle the data
+```bash
+cd $BASE_PATH/dataset/$VERSION/all/
+shuf --random-source=<(yes 42) unshuffled_train.txt > train.txt
+shuf --random-source=<(yes 42) unshuffled_valid.txt > valid.txt
+```
 
-    python train_tokenizer.py --input_folder  $BASE_PATH/dataset/$VERSION/all --output_path $BASE_PATH/tokenizer/$VERSION --vocab_size 1069 
+---
 
-And pre-process the dataset to a litdata format, which is required for training the model. This is memory intensive, and you might want to run this on a SLURM cluster.
+## Train Models from Scratch
 
-    python preprocess_data.py --input_path $BASE_PATH/data/raw --output_path $BASE_PATH/data/tokenized_data --tokenizer_dir $BASE_PATH/tokenizer
-
-### Pre-training
-
-First, update BASE_PATH_CLUSTER, DATASET_NAME, and WANDB_PROJECT from ``configs/generate_configs.py`` based on your setup. Then, run the script to generate configuration files:
-
-    cd configs
-    python generate_configs.py
-
-At the end we can start the model training:
-
-    python open_optformer/training/pretrain.py pythia410M --config configs/NAME_OF_YOUR_CONFIG.yaml
+Assumes `$BASE_PATH/dataset/$VERSION/all/{train,valid}.txt` exists — either pulled from [huggingface.co/datasets/synetune/bbo-pile](https://huggingface.co/datasets/synetune/bbo-pile) or produced by [Generate BBO-Pile from Scratch](#generate-bbo-pile-from-scratch).
 
 
-# Dataset History
 
-## v0.1: 
+**Train the tokenizer:**
 
-Initial version of the datasets with 30 seeds of all methods on each dataset. We used the following format:
+```bash
+python generate_training_data/train_tokenizer.py \
+    --input_folder "$BASE_PATH/dataset/$VERSION/all" \
+    --output_path "$BASE_PATH/tokenizer/$VERSION" \
+    --vocab_size 1069
+```
 
-        benchmark:fcnet-slice
-        algorithm:RS
-        search-space:
-        {name:hp_dropout_2,type:UNI,min_value:0.0,max_value:0.6,linear_scale}
-        {name:hp_n_units_2,type:INT,min_value:16,max_value:512,log_scale}
-        {name:hp_dropout_1,type:UNI,min_value:0.0,max_value:0.6,linear_scale}
-        {name:hp_n_units_1,type:INT,min_value:16,max_value:512,log_scale}
-        {name:hp_batch_size,type:INT,min_value:8,max_value:64,log_scale}
-        {name:hp_init_lr,type:CAT,categories:[0.0005,0.001,0.005,0.01,0.05,0.1]}
-        {name:hp_activation_fn_1,type:CAT,categories:['tanh','relu']}
-        {name:hp_activation_fn_2,type:CAT,categories:['tanh','relu']}
-        {name:hp_lr_schedule,type:CAT,categories:['cosine','const']}
-        history
-        500,0,0,400,667,<3>,<1>,<0>,<1>*7|500,1000,500,0,333,<1>,<0>,<0>,<0>*2|
+**Pre-tokenize into litdata format** (≥64 GB RAM):
 
+```bash
+uv run python generate_training_data/preprocess_data.py \
+    --input_path "$BASE_PATH/dataset/$VERSION/all" \
+    --output_path "$BASE_PATH/tokenized_dataset/$VERSION/all" \
+    --tokenizer_dir "$BASE_PATH/tokenizer/$VERSION"
+```
 
-## v0.2: 
+**Launch training**:
 
-We changed the format to a single line per trajectories, i.e remove all '\n' except the last one. That allowed us to reshuffles rows to break any order in the dataset
+Generate per-run YAML configs (model size × token budget × LR × batch size sweep):
 
-## v0.3: 
+Edit ``configs/generate_configs.py`` to customize `WANDB_PROJECT`, `model_names`, `token_counts`, `lr_grid`, or `bsz_grid` in `configs/generate_configs.py`, then run:
 
-We removed hyperparameter and benchmark names to avoid overfitting of the model. Example trajectories looked like this:
+```bash
+python configs/generate_configs.py
+```
 
-    algorithm:BORE,search-space:{type:INT,min_value:8,max_value:64,log_scale}{type:UNI,min_value:0.0,max_value:0.6,linear_scale}{type:UNI,min_value:0.0,max_value:0.6,linear_scale}{type:INT,min_value:16,max_value:512,log_scale}{type:INT,min_value:16,max_value:512,log_scale}{type:CAT,categories:['tanh','relu']}{type:CAT,categories:['tanh','relu']}{type:CAT,categories:[0.0005,0.001,0.005,0.01,0.05,0.1]}{type:CAT,categories:['cosine','const']},history:0,500,500,400,0,<1>,<1>,<4>,<1>*0|0,500,0,1000,800,<1>,<0>,<5>,<0>*0|
+Run training with (``ARCH`` in `qwen3_2M` / `qwen3_5M` / `qwen3_13M` / `qwen3_30M` / `qwen3_80M` / `qwen3_150M` / `qwen3_450M`
+):
 
-## v0.4: 
+```bash
+python open_optformer/training/pretrain.py <ARCH> --config configs/<GENERATED_CONFIG>.yaml
+```
 
-We found a bug in our data collection script that didn't encode whether a blackbox problem is maximized or minimized. We now map every problem to a minimization problem.
-Also, we removed names of categorical variables to avoid additional overfitting:
+Convert to Hugging Face format:
 
-    algorithm:REA,search-space:{type:INT,min_value:8,max_value:64,log_scale}{type:INT,min_value:16,max_value:512,log_scale}{type:UNI,min_value:0.0,max_value:0.6,linear_scale}{type:UNI,min_value:0.0,max_value:0.6,linear_scale}{type:INT,min_value:16,max_value:512,log_scale}{type:CAT,categories:[0,1]}{type:CAT,categories:[0,1]}{type:CAT,categories:[0,1]}{type:CAT,categories:[0,1,2,3,4,5]},history:0,0,0,500,0,<1>,<1>,<1>,<3>*159|1000,800,500,0,1000,<1>,<0>,<0>,<1>*67|
+```bash
+python -m open_optformer.huggingface_conversion \
+    --litgpt_checkpoint "$BASE_PATH/checkpoints/$VERSION/<run_name>/<step>" \
+    --output_path "$BASE_PATH/hf_checkpoints/<run_name>"
+```
 
-## v0.5: 
+---
 
-There was a bug in the quantization: values were mapped to [0, 1000], but our tokenizer only encodes integers from 0 to 999. Parameters with a value of 1000 were therefore mapped to two tokens, which interfered with the sampling process.
+## Evaluate a Trained Model
 
-## v0.6: 
+```bash
+cd benchmarks/syne_tune_benchmarks
+python benchmark_main.py --seed 5 --run_all_seeds 1 --n_workers 1 --method OPT_CQR --checkpoint_dir <PATH_TO_MODEL_CHECKPOINT> --benchmark fcnet-protein
+```
 
-We add a data augmentation step and ran all optimizers on different sub-spaces of the original FCNET and NAS201 search space, but masking out one or two hyperparameters.
+---
 
-## v0.7:
+## License
 
-We changed the permutation numbers of each dataset to better balance the relative distribution of the different benchmark families.
-
-## v0.8:
-
-Adjust the number of permutations for each family, sample shorter sequences with T_max in [1, 5, 10, 20] trials to account for a different distributions during the optimization process.
+Apache-2.0 (see [`LICENSE`](LICENSE)).

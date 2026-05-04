@@ -1,0 +1,46 @@
+[project]
+name = "open-optformer"
+version = "0.1.0"
+description = "Open foundation models for black-box optimization."
+readme = "README.md"
+license = { file = "LICENSE" }
+requires-python = ">=3.10,<3.11"
+
+dependencies = [
+    # Numerical / data
+    "numpy==1.26.3",
+    "pandas==2.3.3",
+    "scikit-learn==1.7.2",
+    "dill==0.4.0",
+    "matplotlib==3.10.8",
+    "coolname==2.2.0",
+    # Tokenization / IO
+    "sentencepiece==0.2.1",
+    "huggingface-hub==0.34.6",
+    # Training stack
+    "torch==2.9.1",
+    "lightning==2.6.0",
+    "litgpt==0.5.12",
+    "litdata==0.2.59",
+    "transformers==4.57.6",
+    # Inference (GPU)
+    "vllm==0.14.0",
+    "xgrammar==0.1.29",
+    # HPO benchmarks / search
+    "syne-tune[extra]==0.15.0",
+    "pyparfor==0.0.1",
+    # Logging
+    "wandb==0.24.1",
+]
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["open_optformer*"]
+
+[tool.uv]
+# Reproducible installs: pin the resolution to the locked Python version.
+package = true

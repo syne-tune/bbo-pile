@@ -69,8 +69,8 @@ def create_tfrecord_dataloader(
     return dataloader
 
 if __name__ == "__main__":
-    tfrecord_dir = "/home/aaron/datasets/optformer/cached_bbob_train/"
-    tfrecord_dir_eval = "/home/aaron/datasets/optformer/cached_bbob_eval/"
+    tfrecord_dir = os.environ.get("OPTFORMER_BBOB_TRAIN_DIR", "data/cached_bbob_train/")
+    tfrecord_dir_eval = os.environ.get("OPTFORMER_BBOB_EVAL_DIR", "data/cached_bbob_eval/")
 
     # copy from https://github.com/google-research/optformer/blob/neurips22/optformer/t5x/vocabularies.py
     with open("sentencepiece.model", "rb") as f:
