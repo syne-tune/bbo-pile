@@ -50,7 +50,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--results-dir",
         type=pathlib.Path,
-        default=pathlib.Path("/Users/lucathale-bombien/optformer_runtimes"),
+        default=pathlib.Path("./optformer_runtimes"),
         help="Directory containing per-run JSON result files.",
     )
     parser.add_argument(
