@@ -27,7 +27,7 @@ cmap = cm.get_cmap("viridis")
 method_styles = {
     'RS': dict(color=rs_color, linestyle="solid", marker="o"),
     'CQR': dict(color=cqr_color, linestyle="solid", marker="v"),
-    'OptformerVLLM': dict(color=cqr_color, linestyle=multifidelity_style, marker="v"),
+    'OptformerVLLM': dict(color="blue", linestyle=multifidelity_style, marker="v"),
     'OptformerLitGPT': dict(color="red", linestyle=multifidelity_style, marker="v"),
 }
 
@@ -50,7 +50,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--results-dir",
         type=pathlib.Path,
-        default=pathlib.Path("./optformer_runtimes"),
+        default=pathlib.Path("/Users/lucathale-bombien/optformer_runtimes"),
         help="Directory containing per-run JSON result files.",
     )
     parser.add_argument(
@@ -153,7 +153,7 @@ def main() -> None:
                 color=style["color"],
                 linestyle=style["linestyle"],
                 linewidth=2,
-                label=f"{method.replace("Optformer", "BBO-Former")}",
+                label=f"{method.replace("Optformer", "")}",
             )
 
             ax.fill_between(
@@ -165,8 +165,8 @@ def main() -> None:
             )
 
         ax.set_yscale("log")
-        ax.set_xlabel("Trial ID")
-        ax.set_ylabel("Runtime (seconds)")
+        ax.set_xlabel("function evaluations")
+        ax.set_ylabel("runtime (s)")
         ax.set_title(
             "Runtime per Trial - 30 seeds, FCNet-protein",
             fontweight="bold",
