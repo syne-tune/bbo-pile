@@ -6,9 +6,42 @@ from collections import defaultdict
 
 import matplotlib.pyplot as plt
 import numpy as np
+from tueplots import bundles, figsizes
+from matplotlib import cm
+
+from scipy.interpolate import make_interp_spline
 
 logger = logging.getLogger(__name__)
 
+
+# Style definitions
+rs_color = "black"
+cqr_color = "tab:purple"
+multifidelity_style = "dashed"
+multifidelity_style2 = "dashdot"
+
+show_seeds = False
+marker_ours = "*"
+
+cmap = cm.get_cmap("viridis")
+method_styles = {
+    'RS': dict(color=rs_color, linestyle="solid", marker="o"),
+    'CQR': dict(color=cqr_color, linestyle="solid", marker="v"),
+    'OptformerVLLM': dict(color="blue", linestyle=multifidelity_style, marker="v"),
+    'OptformerLitGPT': dict(color="red", linestyle=multifidelity_style, marker="v"),
+}
+
+# Fallback style for methods not in method_styles
+fallback_colors = ["tab:cyan", "tab:pink", "tab:olive", "tab:gray"]
+
+def get_style(method, fallback_idx):
+    if method in method_styles:
+        return method_styles[method]
+    return dict(
+        color=fallback_colors[fallback_idx % len(fallback_colors)],
+        linestyle="solid",
+        marker="o",
+    )
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
@@ -17,13 +50,13 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--results-dir",
         type=pathlib.Path,
-        default=pathlib.Path("/runtime_results"),
+        default=pathlib.Path("./optformer_runtimes"),
         help="Directory containing per-run JSON result files.",
     )
     parser.add_argument(
         "--output",
         type=pathlib.Path,
-        default=pathlib.Path("/fig-multi-searcher-runtime-comparison.png"),
+        default=pathlib.Path("./fig-multi-searcher-runtime-comparison.png"),
         help="Where to save the output plot.",
     )
     parser.add_argument(
@@ -86,60 +119,70 @@ def main() -> None:
             method, len(seed_runtimes), stacked.mean(), stacked.std(),
         )
 
-    # Plot (log-scale)
-    colors = ["blue", "orange", "green", "red", "purple", "brown", "pink"]
-    fig, ax = plt.subplots(figsize=(8, 6))
+    # tueplots layout
+    n_cols = 1
+    rc = bundles.neurips2024(usetex=True)
+    rc.update(figsizes.neurips2024(ncols=n_cols))
+    rc["font.size"] = 10
+    rc["axes.labelsize"] = 10
+    rc["axes.titlesize"] = 10
+    rc["xtick.labelsize"] = 10
+    rc["ytick.labelsize"] = 10
+    rc["legend.fontsize"] = 10
 
-    for idx, (method, seed_runtimes) in enumerate(sorted(all_runtimes.items())):
-        color = colors[idx % len(colors)]
+    with plt.rc_context(rc):
+        fig, axes = plt.subplots(1, n_cols, squeeze=False)
+        ax = axes[0, 0]
 
-        stacked = np.stack(seed_runtimes)  # (n_seeds, n_trials)
-        mean_rt = stacked.mean(axis=0)
-        std_rt = stacked.std(axis=0)
-        n_seeds = len(seed_runtimes)
+        for idx, (method, seed_runtimes) in enumerate(sorted(all_runtimes.items())):
+            style = get_style(method, idx)
 
-        ax.plot(
-            trials_x,
-            mean_rt,
-            marker="o",
-            color=color,
-            linewidth=2,
-            markersize=3,
-            label=f"{method} (n={n_seeds}, mean ± 1 std)",
+            stacked = np.stack(seed_runtimes)  # (n_seeds, n_trials)
+            mean_rt = stacked.mean(axis=0)
+            std_rt = stacked.std(axis=0)
+            n_seeds = len(seed_runtimes)
+
+            x_smooth = np.linspace(trials_x[0], trials_x[-1], 300)
+            spline_mean = make_interp_spline(trials_x, mean_rt, k=3)(x_smooth)
+            spline_lo = make_interp_spline(trials_x, mean_rt - std_rt, k=3)(x_smooth)
+            spline_hi = make_interp_spline(trials_x, mean_rt + std_rt, k=3)(x_smooth)
+
+            ax.plot(
+                x_smooth,
+                spline_mean,
+                color=style["color"],
+                linestyle=style["linestyle"],
+                linewidth=2,
+                label=f"{method.replace("Optformer", "")}",
+            )
+
+            ax.fill_between(
+                x_smooth,
+                spline_lo,
+                spline_hi,
+                color=style["color"],
+                alpha=0.15,
+            )
+
+        ax.set_yscale("log")
+        ax.set_xlabel("function evaluations")
+        ax.set_ylabel("runtime (s)")
+        ax.set_title(
+            "Runtime per Trial - 30 seeds, FCNet-protein",
+            fontweight="bold",
         )
+        ax.legend(loc="upper left", fontsize="small")
 
-        ax.fill_between(
-            trials_x,
-            mean_rt - std_rt,
-            mean_rt + std_rt,
-            color=color,
-            alpha=0.15,
-        )
+        ax.grid(True, alpha=0.3)
 
-    # Log scale
-    ax.set_yscale("log")
+        fig.tight_layout()
 
-    # Labels and title
-    ax.set_xlabel("Trial ID", fontsize=12)
-    ax.set_ylabel("Runtime (seconds)", fontsize=12)
-    ax.set_title(
-        "Runtime per Trial — 30 seeds, FCNet-protein",
-        fontsize=14,
-        fontweight="bold",
-    )
-
-    # Legend and grid
-    ax.legend(loc="upper left")
-    ax.grid(True, alpha=0.3)
-
-    fig.tight_layout()
-
-    # Save
-    args.output.parent.mkdir(parents=True, exist_ok=True)
-    fig.savefig(args.output, dpi=150)
-    plt.close(fig)
+        args.output.parent.mkdir(parents=True, exist_ok=True)
+        fig.savefig(args.output, dpi=150)
+        plt.close(fig)
 
     logger.info("Plot saved to %s", args.output)
+
 
 if __name__ == "__main__":
     main()
