@@ -4,7 +4,7 @@
   huggingface-hub
   scikit-learn
   dill
-  litgpt>=0.5.9
+  litgpt>=0.5.12
   litdata
 #  syne-tune[extra]
   pyparfor

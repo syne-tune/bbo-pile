@@ -20,7 +20,11 @@ def load_result(name, metric_name, config_space, path):
         return None
 
 
-def create_history_from_results(name, metadata, path: Path, max_num_trials: int, n_permutation: int = 0) -> list[str]:
+def create_history_from_results(name, metadata, path: Path,
+                                max_num_trials: int,
+                                num_numeric_tokens: int = 1000,
+                                remove_names: bool = False,
+                                n_permutation: int = 0) -> list[str]:
     config_space = config_space_from_json_dict(json.loads(metadata['config_space']))
     metric_name = metadata["metric_names"][0]
     res = load_result(name, metric_name, config_space, path)
@@ -30,6 +34,8 @@ def create_history_from_results(name, metadata, path: Path, max_num_trials: int,
                                                               results=res,
                                                               path=path,
                                                               tuner=None),
+                                             num_numeric_tokens=num_numeric_tokens,
+                                             remove_names=remove_names,
                                              max_num_trials=max_num_trials)
     traj = list()
     traj.append(hist.get_prompt())

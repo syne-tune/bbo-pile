@@ -36,8 +36,8 @@ from litgpt.utils import (
     parse_devices,
     reset_parameters,
     save_config,
-    save_hyperparameters,
 )
+from litgpt.parser_config import save_hyperparameters
 
 from chuncked_cross_entropy import chunked_cross_entropy
 

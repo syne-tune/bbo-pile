@@ -23,7 +23,7 @@ def run(
     seeds,
     checkpoint_dir,
     max_num_evaluations=None,
-    n_workers: int = 4,
+    n_workers: int = 1,
 ):
     logging.getLogger("syne_tune.optimizer.schedulers").setLevel(logging.WARNING)
     logging.getLogger("syne_tune.backend").setLevel(logging.WARNING)

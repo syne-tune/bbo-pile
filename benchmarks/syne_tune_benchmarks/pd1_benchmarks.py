@@ -5,7 +5,7 @@ def pd1_benchmark(dataset_name: str):
     return BenchmarkDefinition(
         max_wallclock_time=3600000000,
         max_num_evaluations=n_full_evals,
-        n_workers=4,
+        n_workers=1,
         elapsed_time_attr="metric_elapsed_time",
         metric="metric_valid_error_rate",
         mode="min",

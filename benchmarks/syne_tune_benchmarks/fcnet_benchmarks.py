@@ -3,7 +3,7 @@ from benchmark_definitions import BenchmarkDefinition, n_full_evals
 def fcnet_benchmark(dataset_name):
     return BenchmarkDefinition(
         max_wallclock_time=7200,
-        n_workers=4,
+        n_workers=1,
         elapsed_time_attr="metric_elapsed_time",
         metric="metric_valid_loss",
         mode="min",

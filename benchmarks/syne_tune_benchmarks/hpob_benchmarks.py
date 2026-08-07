@@ -5,7 +5,7 @@ def hpob_benchmark(blackbox_name: str, dataset_name: str):
     return BenchmarkDefinition(
         max_wallclock_time=36000,
         max_num_evaluations=1 * n_full_evals,
-        n_workers=4,
+        n_workers=1,
         elapsed_time_attr="metric_elapsed_time",
         metric="metric_accuracy",
         mode="max",

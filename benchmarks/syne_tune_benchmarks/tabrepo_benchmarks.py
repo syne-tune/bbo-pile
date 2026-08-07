@@ -4,7 +4,7 @@ def tabrepo_benchmark(blackbox_name: str, dataset_name: str):
     return BenchmarkDefinition(
         max_wallclock_time=36000,
         max_num_evaluations=1 * n_full_evals,
-        n_workers=4,
+        n_workers=1,
         elapsed_time_attr="metric_elapsed_time",  # todo should also include time_train_s + time_infer_s as metric
         metric="metric_error_val",  # could also do rank
         mode="min",

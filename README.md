@@ -1,5 +1,5 @@
 
-# Open Optformer
+# BBO-Pile: A Dataset for Pre-training Open Foundation Models for Black-box Optimization
 
 ## Installation
 
@@ -49,24 +49,120 @@ And the input path to the results of the benchmarks, e.g.:
 
 ### Data Processing
 
-From the root of the repository, run the following commands to process the data:
+If you want to (re-)generate a new version of the data, specify:
 
-First to compile the results into a dataset
+    export VERSION=v0.5
 
-    python benchmarks/syne_tune_benchmarks/generate_training_data/compile_data.py --path $RESULTS_PATH --output_path $BASE_PATH/data/raw
+Then, switch to the directory:
+
+    cd generate_training_data
+
+First to compile the results of all benchmark family into a dataset
+
+    python compile_data.py --path $RESULTS_PATH/fcnet/ --output_path $BASE_PATH/dataset/$VERSION/fcnet/ --remove_names
+    python compile_data.py --path $RESULTS_PATH/masked_fcnet/ --output_path $BASE_PATH/dataset/$VERSION/masked_fcnet/ --remove_names
+    python compile_data.py --path $RESULTS_PATH/masked_nas201/ --output_path $BASE_PATH/dataset/$VERSION/masked_nas201/ --remove_names
+    python compile_data.py --path $RESULTS_PATH/global_optimization_benchmarks/ --output_path $BASE_PATH/dataset/$VERSION/global_optimization_benchmarks/ --remove_names
+    python compile_data.py --path $RESULTS_PATH/hpob/ --output_path $BASE_PATH/dataset/$VERSION/hpob/ --remove_names
+    python compile_data.py --path $RESULTS_PATH/lcbench/ --output_path $BASE_PATH/dataset/$VERSION/lcbench/ --remove_names
+    python compile_data.py --path $RESULTS_PATH/nas201/ --output_path $BASE_PATH/dataset/$VERSION/nas201/ --remove_names
+    python compile_data.py --path $RESULTS_PATH/pd1/ --output_path $BASE_PATH/dataset/$VERSION/pd1/ --remove_names
+    python compile_data.py --path $RESULTS_PATH/tabrepo/ --output_path $BASE_PATH/dataset/$VERSION/tabrepo/ --remove_names
+
+Generate a new directory:
+
+    mkdir $BASE_PATH/dataset/$VERSION/all/
+
+Concat all datasets for training
+
+    python concat_text_files.py $BASE_PATH/dataset/$VERSION/fcnet/train.txt $BASE_PATH/dataset/$VERSION/nas201/train.txt $BASE_PATH/dataset/$VERSION/masked_fcnet/train.txt $BASE_PATH/dataset/$VERSION/masked_nas201/train.txt $BASE_PATH/dataset/$VERSION/hpob/train.txt $BASE_PATH/dataset/$VERSION/tabrepo/train.txt $BASE_PATH/dataset/$VERSION/pd1/train.txt $BASE_PATH/dataset/$VERSION/lcbench/train.txt $BASE_PATH/dataset/$VERSION/global_optimization_benchmarks/train.txt $BASE_PATH/dataset/$VERSION/all/unshuffled_train.txt
+
+
+and validation:
+
+    python concat_text_files.py $BASE_PATH/dataset/$VERSION/fcnet/valid.txt $BASE_PATH/dataset/$VERSION/nas201/valid.txt $BASE_PATH/dataset/$VERSION/masked_fcnet/valid.txt $BASE_PATH/dataset/$VERSION/masked_nas201/valid.txt $BASE_PATH/dataset/$VERSION/hpob/valid.txt $BASE_PATH/dataset/$VERSION/tabrepo/valid.txt $BASE_PATH/dataset/$VERSION/pd1/valid.txt $BASE_PATH/dataset/$VERSION/lcbench/valid.txt $BASE_PATH/dataset/$VERSION/global_optimization_benchmarks/valid.txt $BASE_PATH/dataset/$VERSION/all/unshuffled_valid.txt
+
+Change the directory:
+
+    cd $BASE_PATH/dataset/$VERSION/all/
+
+and shuffle the data
+    
+    shuf --random-source=<(yes 42) unshuffled_train.txt > train.txt
+    shuf --random-source=<(yes 42) unshuffled_valid.txt > valid.txt
+
 
 Now we can train the tokenizer
 
-    python train_tokenizer.py --input_folder $BASE_PATH/data/raw/ --output_path $BASE_PATH/tokenizer --vocab_size 1049
+    python train_tokenizer.py --input_folder  $BASE_PATH/dataset/$VERSION/all --output_path $BASE_PATH/tokenizer/$VERSION --vocab_size 1069 
 
-And pre-process the dataset to a litdata format, which is required for training the model
+And pre-process the dataset to a litdata format, which is required for training the model. This is memory intensive, and you might want to run this on a SLURM cluster.
 
-    python benchmarks/syne_tune_benchmarks/generate_training_data/preprocess_data.py --input_path $BASE_PATH/data/raw --output_path $BASE_PATH/data/tokenized_data --tokenizer_dir $BASE_PATH/tokenizer
+    python preprocess_data.py --input_path $BASE_PATH/data/raw --output_path $BASE_PATH/data/tokenized_data --tokenizer_dir $BASE_PATH/tokenizer
 
 ### Pre-training
 
-First, update BASE_PATH_CLUSTER, DATASET_NAME, and WANDB_PROJECT from ``benchmarks/syne_tune_benchmarks/configs/generate_configs.py`` based on your setup. Then, run the script to generate configuration files.
+First, update BASE_PATH_CLUSTER, DATASET_NAME, and WANDB_PROJECT from ``configs/generate_configs.py`` based on your setup. Then, run the script to generate configuration files:
+
+    cd configs
+    python generate_configs.py
 
 At the end we can start the model training:
 
-    python open_optformer/training/pretrain.py pythia410M --config benchmarks/syne_tune_benchmarks/configs/NAME_OF_YOUR_CONFIG.yaml
+    python open_optformer/training/pretrain.py pythia410M --config configs/NAME_OF_YOUR_CONFIG.yaml
+
+
+# Dataset History
+
+## v0.1: 
+
+Initial version of the datasets with 30 seeds of all methods on each dataset. We used the following format:
+
+        benchmark:fcnet-slice
+        algorithm:RS
+        search-space:
+        {name:hp_dropout_2,type:UNI,min_value:0.0,max_value:0.6,linear_scale}
+        {name:hp_n_units_2,type:INT,min_value:16,max_value:512,log_scale}
+        {name:hp_dropout_1,type:UNI,min_value:0.0,max_value:0.6,linear_scale}
+        {name:hp_n_units_1,type:INT,min_value:16,max_value:512,log_scale}
+        {name:hp_batch_size,type:INT,min_value:8,max_value:64,log_scale}
+        {name:hp_init_lr,type:CAT,categories:[0.0005,0.001,0.005,0.01,0.05,0.1]}
+        {name:hp_activation_fn_1,type:CAT,categories:['tanh','relu']}
+        {name:hp_activation_fn_2,type:CAT,categories:['tanh','relu']}
+        {name:hp_lr_schedule,type:CAT,categories:['cosine','const']}
+        history
+        500,0,0,400,667,<3>,<1>,<0>,<1>*7|500,1000,500,0,333,<1>,<0>,<0>,<0>*2|
+
+
+## v0.2: 
+
+We changed the format to a single line per trajectories, i.e remove all '\n' except the last one. That allowed us to reshuffles rows to break any order in the dataset
+
+## v0.3: 
+
+We removed hyperparameter and benchmark names to avoid overfitting of the model. Example trajectories looked like this:
+
+    algorithm:BORE,search-space:{type:INT,min_value:8,max_value:64,log_scale}{type:UNI,min_value:0.0,max_value:0.6,linear_scale}{type:UNI,min_value:0.0,max_value:0.6,linear_scale}{type:INT,min_value:16,max_value:512,log_scale}{type:INT,min_value:16,max_value:512,log_scale}{type:CAT,categories:['tanh','relu']}{type:CAT,categories:['tanh','relu']}{type:CAT,categories:[0.0005,0.001,0.005,0.01,0.05,0.1]}{type:CAT,categories:['cosine','const']},history:0,500,500,400,0,<1>,<1>,<4>,<1>*0|0,500,0,1000,800,<1>,<0>,<5>,<0>*0|
+
+## v0.4: 
+
+We found a bug in our data collection script that didn't encode whether a blackbox problem is maximized or minimized. We now map every problem to a minimization problem.
+Also, we removed names of categorical variables to avoid additional overfitting:
+
+    algorithm:REA,search-space:{type:INT,min_value:8,max_value:64,log_scale}{type:INT,min_value:16,max_value:512,log_scale}{type:UNI,min_value:0.0,max_value:0.6,linear_scale}{type:UNI,min_value:0.0,max_value:0.6,linear_scale}{type:INT,min_value:16,max_value:512,log_scale}{type:CAT,categories:[0,1]}{type:CAT,categories:[0,1]}{type:CAT,categories:[0,1]}{type:CAT,categories:[0,1,2,3,4,5]},history:0,0,0,500,0,<1>,<1>,<1>,<3>*159|1000,800,500,0,1000,<1>,<0>,<0>,<1>*67|
+
+## v0.5: 
+
+There was a bug in the quantization: values were mapped to [0, 1000], but our tokenizer only encodes integers from 0 to 999. Parameters with a value of 1000 were therefore mapped to two tokens, which interfered with the sampling process.
+
+## v0.6: 
+
+We add a data augmentation step and ran all optimizers on different sub-spaces of the original FCNET and NAS201 search space, but masking out one or two hyperparameters.
+
+## v0.7:
+
+We changed the permutation numbers of each dataset to better balance the relative distribution of the different benchmark families.
+
+## v0.8:
+
+Adjust the number of permutations for each family, sample shorter sequences with T_max in [1, 5, 10, 20] trials to account for a different distributions during the optimization process.

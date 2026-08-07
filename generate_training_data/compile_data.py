@@ -4,6 +4,7 @@ import os
 import tqdm
 import random
 import itertools
+import numpy as np
 
 from pathlib import Path
 from argparse import ArgumentParser
@@ -29,6 +30,11 @@ if __name__ == "__main__":
         default=30,
     )
     parser.add_argument(
+        "--sample_shorter_trajectories",
+        action='store_true',
+        help="additionally add just the first [1, 5, 10, 20] trials of the trajectory",
+    )
+    parser.add_argument(
         "--num_permutation",
         type=int,
         required=False,
@@ -39,6 +45,11 @@ if __name__ == "__main__":
         type=str,
         required=True,
         help="path to store the results",
+    )
+    parser.add_argument(
+        "--remove_names",
+        action='store_true',
+        help="remove names of benchmark and hypers",
     )
 
     methods = [
@@ -89,9 +100,19 @@ if __name__ == "__main__":
             for name, metadata in tqdm.tqdm(metadatas.items()):
                     benchmark_name = metadata['benchmark']
                     if benchmark_name in validation_tasks:
-                        hist_valid.extend(create_history_from_results(name, metadata, path, max_num_trials, args.num_permutation))
+                        hist_valid.extend(create_history_from_results(name, metadata, path, max_num_trials,
+                                                                      remove_names=args.remove_names,
+                                                                      n_permutation=args.num_permutation))
                     else:
-                        hist_train.extend(create_history_from_results(name, metadata, path, max_num_trials, args.num_permutation))
+                        hist_train.extend(create_history_from_results(name, metadata, path, max_num_trials,
+                                                                      remove_names=args.remove_names,
+                                                                      n_permutation=args.num_permutation))
+                        if args.sample_shorter_trajectories:
+                            for mt in [1, 5, 10, 20]:
+                                hist_train.extend(create_history_from_results(name, metadata, path,
+                                                                            mt,
+                                                                            remove_names=args.remove_names,
+                                                                            n_permutation=0))
 
             random.shuffle(hist_train)
             for split in ['train', 'valid']:

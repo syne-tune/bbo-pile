@@ -8,7 +8,7 @@ eval:
   final_validation: true
   initial_validation: true
   interval: 50
-  max_iters: 100
+  max_iters: 100000 # loop over entire validation dataset
   max_new_tokens: null
 initial_checkpoint_dir: null
 logger_name: wandb
@@ -17,25 +17,25 @@ model_config:
   attention_scores_scalar: null
   attn_bias: false
   bias: false
-  block_size: 40960
+  block_size: 4096
   final_logit_softcapping: null
   gelu_approximate: none
   hf_config:
-    name: Qwen3-0.6B
+    name: Qwen3-450M
     org: Qwen
   latent_attention: null
   lm_head_bias: false
   mlp_class_name: LLaMAMLP
   moe_intermediate_size: null
-  n_embd: 256
-  head_size: 32
-  intermediate_size: 1536
+  n_embd: 1024
+  head_size: 128
+  intermediate_size: 3072
   n_expert: 0
   n_expert_per_token: 0
   n_head: 16
-  n_layer: 14
-  n_query_groups: 4
-  name: Qwen3-20M
+  n_layer: 28
+  n_query_groups: 8
+  name: Qwen3-450M
   norm_1: true
   norm_2: true
   norm_class_name: RMSNorm
@@ -74,7 +74,7 @@ seed: 42
 tokenizer_dir: /syne-tune-benchmarks/tokenizer
 train:
   epochs: null
-  global_batch_size: 128
+  global_batch_size: 512
   log_interval: 10
   lr_warmup_steps: 200
   max_norm: 1.0
@@ -82,10 +82,10 @@ train:
   max_steps: null
   max_tokens: 8_000_000_000 
   micro_batch_size: 32
-  min_lr: 0.0000
+  min_lr: 1e-5
   save_interval: 2000
   tie_embeddings: true
 log:
   project: "open-optformer"
-  run: "qwen3-20M_token_8B_bs_128_all_tokens_lr_1e-4_warumup_5p"
+  run: "qwen3-2M_token_8B_bs_128_all_tokens_lr_1e-4_warumup_5p"
   group: 'concat'

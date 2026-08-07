@@ -1,0 +1,41 @@
+{
+  "fcnet": [
+    "fcnet-protein"
+  ],
+  "nas201": [
+    "nas201-ImageNet16-120"
+  ],
+  "lcbench": [
+    "lcbench_Fashion-MNIST",
+    "lcbench_airlines",
+    "lcbench_albert",
+    "lcbench_covertype",
+    "lcbench_christine"
+  ],
+  "pd1": [
+    "pd1_imagenet_resnet_batch_size_512",
+    "pd1_uniref50_transformer_batch_size_128",
+    "pd1_mnist_simple_cnn_batch_size_2048"
+  ],
+  "global_optimization_problems": [
+    "global-optimization_branin",
+    "global-optimization_goldstein_price",
+    "global-optimization_eggholder",
+    "global-optimization_forrester",
+    "global-optimization_hartmann6"
+  ],
+  "hpob": [
+    "hpob_4976_14968",
+    "hpob_5636_145854",
+    "hpob_5971_145878",
+    "hpob_6766_34536",
+    "hpob_7607_146066"
+  ],
+  "tabrepo": [
+    "tabrepo_CatBoost_mnist_784",
+    "tabrepo_CatBoost_adult",
+    "tabrepo_CatBoost_covertype",
+    "tabrepo_CatBoost_Higgs",
+    "tabrepo_CatBoost_Fashion-MNIST"
+  ]
+}

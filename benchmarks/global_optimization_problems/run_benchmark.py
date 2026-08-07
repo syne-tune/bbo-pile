@@ -23,6 +23,13 @@ if __name__ == "__main__":
     parser.add_argument("--max_trials", type=int, default=100)
     parser.add_argument("--output_path", type=str, default='./')
     parser.add_argument("--num_start_points", type=int, default=5)
+    parser.add_argument(
+        "--checkpoint_dir",
+        type=str,
+        required=False,
+        default="",
+        help="directory for optformer model checkpoints",
+    )
     args, _ = parser.parse_known_args()
 
     seed = args.seed
@@ -46,7 +53,9 @@ if __name__ == "__main__":
             random_seed=seed,
             mode='min',
             config_space=config_space,
-            points_to_evaluate=points_to_evaluate
+            points_to_evaluate=points_to_evaluate,
+            checkpoint_dir=args.checkpoint_dir,
+            benchmark_name=args.benchmark
         )
     )
 
