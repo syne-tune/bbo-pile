@@ -17,7 +17,7 @@ Furthermore, you need to install the following packages, if you want to install 
 
 To run the benchmark locally, first go to the syne_tune_benchmarks folder
 
-    cd benchmarks/syne-tune-benchmarks
+    cd benchmarks/syne_tune_benchmarks
 
 and run the following command:
 
@@ -57,48 +57,35 @@ Then, switch to the directory:
 
     cd generate_training_data
 
-First to compile the results of all benchmark family into a dataset
+Compile the results of all benchmark families directly into a combined dataset (the script recursively discovers all benchmarks, splits the validation sets, and automatically shuffles the training data):
 
-    python compile_data.py --path $RESULTS_PATH/fcnet/ --output_path $BASE_PATH/dataset/$VERSION/fcnet/ --remove_names
-    python compile_data.py --path $RESULTS_PATH/masked_fcnet/ --output_path $BASE_PATH/dataset/$VERSION/masked_fcnet/ --remove_names
-    python compile_data.py --path $RESULTS_PATH/masked_nas201/ --output_path $BASE_PATH/dataset/$VERSION/masked_nas201/ --remove_names
-    python compile_data.py --path $RESULTS_PATH/global_optimization_benchmarks/ --output_path $BASE_PATH/dataset/$VERSION/global_optimization_benchmarks/ --remove_names
-    python compile_data.py --path $RESULTS_PATH/hpob/ --output_path $BASE_PATH/dataset/$VERSION/hpob/ --remove_names
-    python compile_data.py --path $RESULTS_PATH/lcbench/ --output_path $BASE_PATH/dataset/$VERSION/lcbench/ --remove_names
-    python compile_data.py --path $RESULTS_PATH/nas201/ --output_path $BASE_PATH/dataset/$VERSION/nas201/ --remove_names
-    python compile_data.py --path $RESULTS_PATH/pd1/ --output_path $BASE_PATH/dataset/$VERSION/pd1/ --remove_names
-    python compile_data.py --path $RESULTS_PATH/tabrepo/ --output_path $BASE_PATH/dataset/$VERSION/tabrepo/ --remove_names
+    mkdir -p $BASE_PATH/dataset/$VERSION/all/
+    python compile_data.py \
+      --path $RESULTS_PATH \
+      --output_path $BASE_PATH/dataset/$VERSION/all/ \
+      --remove_names \
+      --max_seed 30 \
+      --num_permutation 5 \
+      --sample_shorter_trajectories
 
-Generate a new directory:
-
-    mkdir $BASE_PATH/dataset/$VERSION/all/
-
-Concat all datasets for training
-
-    python concat_text_files.py $BASE_PATH/dataset/$VERSION/fcnet/train.txt $BASE_PATH/dataset/$VERSION/nas201/train.txt $BASE_PATH/dataset/$VERSION/masked_fcnet/train.txt $BASE_PATH/dataset/$VERSION/masked_nas201/train.txt $BASE_PATH/dataset/$VERSION/hpob/train.txt $BASE_PATH/dataset/$VERSION/tabrepo/train.txt $BASE_PATH/dataset/$VERSION/pd1/train.txt $BASE_PATH/dataset/$VERSION/lcbench/train.txt $BASE_PATH/dataset/$VERSION/global_optimization_benchmarks/train.txt $BASE_PATH/dataset/$VERSION/all/unshuffled_train.txt
-
-
-and validation:
-
-    python concat_text_files.py $BASE_PATH/dataset/$VERSION/fcnet/valid.txt $BASE_PATH/dataset/$VERSION/nas201/valid.txt $BASE_PATH/dataset/$VERSION/masked_fcnet/valid.txt $BASE_PATH/dataset/$VERSION/masked_nas201/valid.txt $BASE_PATH/dataset/$VERSION/hpob/valid.txt $BASE_PATH/dataset/$VERSION/tabrepo/valid.txt $BASE_PATH/dataset/$VERSION/pd1/valid.txt $BASE_PATH/dataset/$VERSION/lcbench/valid.txt $BASE_PATH/dataset/$VERSION/global_optimization_benchmarks/valid.txt $BASE_PATH/dataset/$VERSION/all/unshuffled_valid.txt
-
-Change the directory:
-
-    cd $BASE_PATH/dataset/$VERSION/all/
-
-and shuffle the data
-    
-    shuf --random-source=<(yes 42) unshuffled_train.txt > train.txt
-    shuf --random-source=<(yes 42) unshuffled_valid.txt > valid.txt
-
+The `compile_data.py` script supports several arguments:
+- `--path`: The input path where the benchmark results are stored.
+- `--output_path`: The directory where the compiled dataset will be saved.
+- `--remove_names`: Flag to remove names of benchmarks and hyperparameters, avoiding overfitting.
+- `--max_seed`: Maximum number of seeds to include (default: 30).
+- `--num_permutation`: Number of times the order of variables in the trajectories is permuted to augment the data (default: 5).
+- `--sample_shorter_trajectories`: Flag to additionally include shorter trajectories (first 1, 5, 10, and 20 trials) in the training data.
 
 Now we can train the tokenizer
 
-    python train_tokenizer.py --input_folder  $BASE_PATH/dataset/$VERSION/all --output_path $BASE_PATH/tokenizer/$VERSION --vocab_size 1069 
+    python train_tokenizer.py --input_folder $BASE_PATH/dataset/$VERSION/all --output_path $BASE_PATH/tokenizer/$VERSION --vocab_size 1069
 
 And pre-process the dataset to a litdata format, which is required for training the model. This is memory intensive, and you might want to run this on a SLURM cluster.
 
-    python preprocess_data.py --input_path $BASE_PATH/data/raw --output_path $BASE_PATH/data/tokenized_data --tokenizer_dir $BASE_PATH/tokenizer
+    python preprocess_data.py \
+      --input_path $BASE_PATH/dataset/$VERSION/all \
+      --output_path $BASE_PATH/dataset/$VERSION/tokenized_data \
+      --tokenizer_dir $BASE_PATH/tokenizer/$VERSION
 
 ### Pre-training
 
