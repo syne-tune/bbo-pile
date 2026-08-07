@@ -10,7 +10,7 @@ from syne_tune.optimizer.schedulers.single_objective_scheduler import (
     SingleObjectiveScheduler,
 )
 
-from open_optformer.optformer_searcher import OptformerScheduler
+from syne_tune.optimizer.schedulers.searchers.fmbo.fmbo_searcher import FMBOSearcher
 from open_optformer.hebo_searcher import HEBOSearcher
 
 @dataclass
@@ -43,6 +43,26 @@ class Methods:
     OPT_CQR = "OPT-CQR"
     OPT_CQR_TS = 'OPT-CQR-TS'
     OPT_CQR_TS_5 = 'OPT-CQR-TS-5'
+
+def _fmbo_scheduler(method_arguments, algorithm: str, n_sample_configurations: int = 1):
+    return SingleObjectiveScheduler(
+        config_space=method_arguments.config_space,
+        metric=method_arguments.metric,
+        do_minimize=method_arguments.mode == "min",
+        random_seed=method_arguments.random_seed,
+        searcher=FMBOSearcher(
+            config_space=method_arguments.config_space,
+            checkpoint_dir=Path(method_arguments.checkpoint_dir),
+            tokenizer_dir=Path(method_arguments.checkpoint_dir),
+            use_vllm=False,
+            task_info={'name': method_arguments.benchmark_name,
+                       'algorithm': algorithm,
+                       'metric_names': "feval"},
+            random_seed=method_arguments.random_seed,
+            points_to_evaluate=method_arguments.points_to_evaluate,
+            n_sample_configurations=n_sample_configurations,
+        ),
+    )
 
 methods = {
     Methods.RS: lambda method_arguments: SingleObjectiveScheduler(
@@ -97,100 +117,14 @@ methods = {
         random_seed=method_arguments.random_seed,
         searcher_kwargs={"points_to_evaluate": method_arguments.points_to_evaluate, "population_size": 20, "sample_size": 10},
     ),
-    Methods.OPT_RS: lambda method_arguments: OptformerScheduler(
-        config_space=method_arguments.config_space,
-        metric=method_arguments.metric,
-        checkpoint_dir=Path(method_arguments.checkpoint_dir),
-        task_info = {'name': method_arguments.benchmark_name,
-                    'algorithm': "RS",
-                    'metric_names': "feval"},
-        do_minimize=method_arguments.mode == "min",
-        random_seed=method_arguments.random_seed,
-        points_to_evaluate=method_arguments.points_to_evaluate,
-    ),
-    Methods.OPT_REA: lambda method_arguments: OptformerScheduler(
-        config_space=method_arguments.config_space,
-        metric=method_arguments.metric,
-        checkpoint_dir=Path(method_arguments.checkpoint_dir),
-        task_info={'name': method_arguments.benchmark_name,
-                   'algorithm': "REA",
-                   'metric_names': "feval"},
-        do_minimize=method_arguments.mode == "min",
-        random_seed=method_arguments.random_seed,
-        points_to_evaluate=method_arguments.points_to_evaluate,
-    ),
-    Methods.OPT_CQR: lambda method_arguments: OptformerScheduler(
-        config_space=method_arguments.config_space,
-        metric=method_arguments.metric,
-        checkpoint_dir=Path(method_arguments.checkpoint_dir),
-        task_info={'name': method_arguments.benchmark_name,
-                   'algorithm': "CQR",
-                   'metric_names': "feval"},
-        do_minimize=method_arguments.mode == "min",
-        random_seed=method_arguments.random_seed,
-        points_to_evaluate=method_arguments.points_to_evaluate,
-        n_sample_configurations=1,
-    ),
-    Methods.OPT_BORE: lambda method_arguments: OptformerScheduler(
-        config_space=method_arguments.config_space,
-        metric=method_arguments.metric,
-        checkpoint_dir=Path(method_arguments.checkpoint_dir),
-        task_info={'name': method_arguments.benchmark_name,
-                   'algorithm': "BORE",
-                   'metric_names': "feval"},
-        do_minimize=method_arguments.mode == "min",
-        random_seed=method_arguments.random_seed,
-        points_to_evaluate=method_arguments.points_to_evaluate,
-        n_sample_configurations=1,
-    ),
-    Methods.OPT_TPE: lambda method_arguments: OptformerScheduler(
-        config_space=method_arguments.config_space,
-        metric=method_arguments.metric,
-        checkpoint_dir=Path(method_arguments.checkpoint_dir),
-        task_info={'name': method_arguments.benchmark_name,
-                   'algorithm': "TPE",
-                   'metric_names': "feval"},
-        do_minimize=method_arguments.mode == "min",
-        random_seed=method_arguments.random_seed,
-        points_to_evaluate=method_arguments.points_to_evaluate,
-        n_sample_configurations=1,
-    ),
-    Methods.OPT_HEBO: lambda method_arguments: OptformerScheduler(
-        config_space=method_arguments.config_space,
-        metric=method_arguments.metric,
-        checkpoint_dir=Path(method_arguments.checkpoint_dir),
-        task_info={'name': method_arguments.benchmark_name,
-                   'algorithm': "HEBO",
-                   'metric_names': "feval"},
-        do_minimize=method_arguments.mode == "min",
-        random_seed=method_arguments.random_seed,
-        points_to_evaluate=method_arguments.points_to_evaluate,
-        n_sample_configurations=1,
-    ),
-    Methods.OPT_CQR_TS_5: lambda method_arguments: OptformerScheduler(
-        config_space=method_arguments.config_space,
-        metric=method_arguments.metric,
-        checkpoint_dir=Path(method_arguments.checkpoint_dir),
-        task_info={'name': method_arguments.benchmark_name,
-                   'algorithm': "CQR",
-                   'metric_names': "feval"},
-        do_minimize=method_arguments.mode == "min",
-        random_seed=method_arguments.random_seed,
-        points_to_evaluate=method_arguments.points_to_evaluate,
-        n_sample_configurations=5,
-    ),
-    Methods.OPT_CQR_TS: lambda method_arguments: OptformerScheduler(
-        config_space=method_arguments.config_space,
-        metric=method_arguments.metric,
-        checkpoint_dir=Path(method_arguments.checkpoint_dir),
-        task_info={'name': method_arguments.benchmark_name,
-                   'algorithm': "CQR",
-                   'metric_names': "feval"},
-        do_minimize=method_arguments.mode == "min",
-        random_seed=method_arguments.random_seed,
-        points_to_evaluate=method_arguments.points_to_evaluate,
-        n_sample_configurations=50,
-    ),
+    Methods.OPT_RS: lambda method_arguments: _fmbo_scheduler(method_arguments, "RS"),
+    Methods.OPT_REA: lambda method_arguments: _fmbo_scheduler(method_arguments, "REA"),
+    Methods.OPT_CQR: lambda method_arguments: _fmbo_scheduler(method_arguments, "CQR"),
+    Methods.OPT_BORE: lambda method_arguments: _fmbo_scheduler(method_arguments, "BORE"),
+    Methods.OPT_TPE: lambda method_arguments: _fmbo_scheduler(method_arguments, "TPE"),
+    Methods.OPT_HEBO: lambda method_arguments: _fmbo_scheduler(method_arguments, "HEBO"),
+    Methods.OPT_CQR_TS_5: lambda method_arguments: _fmbo_scheduler(method_arguments, "CQR", n_sample_configurations=5),
+    Methods.OPT_CQR_TS: lambda method_arguments: _fmbo_scheduler(method_arguments, "CQR", n_sample_configurations=50),
 }
 
 
