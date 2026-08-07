@@ -10,7 +10,7 @@ from syne_tune.optimizer.schedulers.asha import AsynchronousSuccessiveHalving
 from syne_tune.optimizer.schedulers.single_objective_scheduler import (
     SingleObjectiveScheduler,
 )
-from open_optformer.optformer_searcher import OptformerScheduler
+from syne_tune.optimizer.schedulers.searchers.fmbo.fmbo_searcher import FMBOSearcher
 from open_optformer.local_search import LocalSearch
 
 @dataclass
@@ -49,29 +49,40 @@ methods = {
         do_minimize=method_arguments.mode == "min",
         random_seed=method_arguments.random_seed,
     ),
-    Methods.OPT_RS: lambda method_arguments: OptformerScheduler(
+    Methods.OPT_RS: lambda method_arguments: SingleObjectiveScheduler(
         config_space=method_arguments.config_space,
         metric=method_arguments.metric,
-        checkpoint_dir=Path(method_arguments.checkpoint_dir),
-        task_info = {'name': f'counting_ones_{method_arguments.config_space["dim"]}D',
-                    'algorithm': "random_search",
-                    'metric_names': "feval"},
         do_minimize=method_arguments.mode == "min",
         random_seed=method_arguments.random_seed,
-        points_to_evaluate=method_arguments.points_to_evaluate,
+        searcher=FMBOSearcher(
+            config_space=method_arguments.config_space,
+            checkpoint_dir=Path(method_arguments.checkpoint_dir),
+            tokenizer_dir=Path(method_arguments.checkpoint_dir),
+            use_vllm=False,
+            task_info={'name': f'counting_ones_{method_arguments.config_space["dim"]}D',
+                       'algorithm': "random_search",
+                       'metric_names': "feval"},
+            random_seed=method_arguments.random_seed,
+            points_to_evaluate=method_arguments.points_to_evaluate,
+        ),
     ),
 
-    Methods.OPT_LS: lambda method_arguments: OptformerScheduler(
+    Methods.OPT_LS: lambda method_arguments: SingleObjectiveScheduler(
         config_space=method_arguments.config_space,
         metric=method_arguments.metric,
-        checkpoint_dir=Path(method_arguments.checkpoint_dir),
-#        checkpoint_dir=Path('/home/aaron/experiments/open_optformer/counting_ones/model/final/'),
-        task_info={'name': f'counting_ones_{method_arguments.config_space["dim"]}D',
-                   'algorithm': "local_search",
-                   'metric_names': "feval"},
         do_minimize=method_arguments.mode == "min",
         random_seed=method_arguments.random_seed,
-        points_to_evaluate=method_arguments.points_to_evaluate,
+        searcher=FMBOSearcher(
+            config_space=method_arguments.config_space,
+            checkpoint_dir=Path(method_arguments.checkpoint_dir),
+            tokenizer_dir=Path(method_arguments.checkpoint_dir),
+            use_vllm=False,
+            task_info={'name': f'counting_ones_{method_arguments.config_space["dim"]}D',
+                       'algorithm': "local_search",
+                       'metric_names': "feval"},
+            random_seed=method_arguments.random_seed,
+            points_to_evaluate=method_arguments.points_to_evaluate,
+        ),
     ),
 }
 

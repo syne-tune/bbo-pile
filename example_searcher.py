@@ -14,7 +14,10 @@ from syne_tune.backend.trial_status import Trial
 from syne_tune.blackbox_repository.blackbox_surrogate import add_surrogate
 from syne_tune.blackbox_repository import load_blackbox
 
-from open_optformer.optformer_searcher import OptformerScheduler
+from syne_tune.optimizer.schedulers.searchers.fmbo.fmbo_searcher import FMBOSearcher
+from syne_tune.optimizer.schedulers.single_objective_scheduler import (
+    SingleObjectiveScheduler,
+)
 
 
 #bb = load_blackbox("fcnet")["imagenet_resnet_batch_size_512"]
@@ -38,15 +41,22 @@ name = "remove-forward-refactor"
 #checkpoint_dir = pathlib.Path("./checkpoint/")
 checkpoint_dir = pathlib.Path('/home/aaron/experiments/open_optformer/checkpoints/qwen3_50M_token_2B_lr_1e-4_bsz_64')
 
-searcher = OptformerScheduler(
+searcher = SingleObjectiveScheduler(
     config_space=config_space,
-    checkpoint_dir=checkpoint_dir,
     metric=objective,
+    do_minimize=True,
     random_seed=0,
-    task_info={'name': 'lcbench_Fashion-MNIST',
-            'algorithm': "CQR",
-            'metric_names': objective},
-    points_to_evaluate=points_to_evaluate
+    searcher=FMBOSearcher(
+        config_space=config_space,
+        checkpoint_dir=checkpoint_dir,
+        tokenizer_dir=checkpoint_dir,
+        use_vllm=False,
+        random_seed=0,
+        task_info={'name': 'lcbench_Fashion-MNIST',
+                'algorithm': "CQR",
+                'metric_names': objective},
+        points_to_evaluate=points_to_evaluate
+    ),
 )
 
 

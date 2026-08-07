@@ -11,7 +11,7 @@ from syne_tune.optimizer.schedulers.single_objective_scheduler import (
 )
 from syne_tune.optimizer.schedulers.smac_scheduler import SMACScheduler
 
-from open_optformer.optformer_searcher import OptformerScheduler
+from syne_tune.optimizer.schedulers.searchers.fmbo.fmbo_searcher import FMBOSearcher
 from open_optformer.hebo_searcher import HEBOSearcher
 
 @dataclass
@@ -117,39 +117,57 @@ methods = {
         random_seed=method_arguments.random_seed,
         searcher_kwargs={"points_to_evaluate": method_arguments.points_to_evaluate, "population_size": 20, "sample_size": 10},
     ),
-    Methods.OPT_RS: lambda method_arguments: OptformerScheduler(
+    Methods.OPT_RS: lambda method_arguments: SingleObjectiveScheduler(
         config_space=method_arguments.config_space,
         metric=method_arguments.metric,
-        checkpoint_dir=Path(method_arguments.checkpoint_dir),
-        task_info = {'name': method_arguments.benchmark_name,
-                    'algorithm': "RS",
-                    'metric_names': "feval"},
         do_minimize=method_arguments.mode == "min",
         random_seed=method_arguments.random_seed,
-        points_to_evaluate=method_arguments.points_to_evaluate,
+        searcher=FMBOSearcher(
+            config_space=method_arguments.config_space,
+            checkpoint_dir=Path(method_arguments.checkpoint_dir),
+            tokenizer_dir=Path(method_arguments.checkpoint_dir),
+            use_vllm=False,
+            task_info={'name': method_arguments.benchmark_name,
+                       'algorithm': "RS",
+                       'metric_names': "feval"},
+            random_seed=method_arguments.random_seed,
+            points_to_evaluate=method_arguments.points_to_evaluate,
+        ),
     ),
 
-    Methods.OPT_REA: lambda method_arguments: OptformerScheduler(
+    Methods.OPT_REA: lambda method_arguments: SingleObjectiveScheduler(
         config_space=method_arguments.config_space,
         metric=method_arguments.metric,
-        checkpoint_dir=Path(method_arguments.checkpoint_dir),
-        task_info={'name': method_arguments.benchmark_name,
-                   'algorithm': "REA",
-                   'metric_names': "feval"},
         do_minimize=method_arguments.mode == "min",
         random_seed=method_arguments.random_seed,
-        points_to_evaluate=method_arguments.points_to_evaluate,
+        searcher=FMBOSearcher(
+            config_space=method_arguments.config_space,
+            checkpoint_dir=Path(method_arguments.checkpoint_dir),
+            tokenizer_dir=Path(method_arguments.checkpoint_dir),
+            use_vllm=False,
+            task_info={'name': method_arguments.benchmark_name,
+                       'algorithm': "REA",
+                       'metric_names': "feval"},
+            random_seed=method_arguments.random_seed,
+            points_to_evaluate=method_arguments.points_to_evaluate,
+        ),
     ),
-    Methods.OPT_CQR: lambda method_arguments: OptformerScheduler(
+    Methods.OPT_CQR: lambda method_arguments: SingleObjectiveScheduler(
         config_space=method_arguments.config_space,
         metric=method_arguments.metric,
-        checkpoint_dir=Path(method_arguments.checkpoint_dir),
-        task_info={'name': method_arguments.benchmark_name,
-                   'algorithm': "CQR",
-                   'metric_names': "feval"},
         do_minimize=method_arguments.mode == "min",
         random_seed=method_arguments.random_seed,
-        points_to_evaluate=method_arguments.points_to_evaluate,
+        searcher=FMBOSearcher(
+            config_space=method_arguments.config_space,
+            checkpoint_dir=Path(method_arguments.checkpoint_dir),
+            tokenizer_dir=Path(method_arguments.checkpoint_dir),
+            use_vllm=False,
+            task_info={'name': method_arguments.benchmark_name,
+                       'algorithm': "CQR",
+                       'metric_names': "feval"},
+            random_seed=method_arguments.random_seed,
+            points_to_evaluate=method_arguments.points_to_evaluate,
+        ),
     ),
 }
 
