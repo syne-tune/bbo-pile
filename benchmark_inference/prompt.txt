@@ -1,0 +1,49 @@
+I have a model config "model_config.yaml" from a model obtained in litgpt. I want to benchmark inference speed in different scenarios, the weights dont matter so they should be initialized randomly.
+
+I want you to write the code to benchmark the speed to run inference with: 
+1) litgpt generate method
+2) huggingface generate method 
+3) llamacpp python bidding
+
+The model have to be generated in litgpt, huggingface and llamacpp formats. Use random values, only the inference speed matters.
+
+Here are a few additional hyperparameters:
+* context length: 500 (use random tokens)
+* number of generated tokens: 20
+* number of samples (eg. number of generations given a fixed random prompt): 50
+
+Use the following code structure in a benchmark_inference.py that runs with uv:
+
+```python
+
+context_length = 500
+number_output_tokens = 20
+number_samples = 50
+
+
+def generate_litgpt(litgpt_model, context: list[int]):
+  # runs inference and shows runtime
+  ...
+
+
+def generate_huggingface(huggingface_model, context: list[int]):
+  ...
+
+
+def generate_llama_cpp(llama_cpp_model, context: list[int]):
+  ...
+
+
+config = load_config()
+model = create_random_model(config)
+litgpt_model, huggingface, llama_cpp = convert_model()
+
+
+
+random_context = random_string(context_length)
+generate_litgpt(litgpt_model, random_context)
+generate_huggingface(huggingface_model, random_context)
+generate_llama_cpp(llama_cpp_model, random_context)
+```
+
+Start by litgpt until you get a setup working, then HF, then llamacpp.``
