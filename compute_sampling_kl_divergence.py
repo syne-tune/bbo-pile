@@ -16,8 +16,8 @@ from syne_tune.backend.trial_status import Trial
 from syne_tune.blackbox_repository.repository import load_blackbox
 from syne_tune.config_space import Categorical
 from syne_tune.optimizer.baselines import CQR
-
-from open_optformer.optformer_searcher import OptformerScheduler
+from syne_tune.optimizer.schedulers.single_objective_scheduler import SingleObjectiveScheduler
+from syne_tune.optimizer.schedulers.searchers.fmbo.fmbo_searcher import FMBOSearcher
 
 from benchmarks.syne_tune_benchmarks.fcnet_benchmarks import fcnet_benchmark_definitions
 from benchmarks.syne_tune_benchmarks.nas201_benchmarks import nas201_benchmark_definitions
@@ -184,18 +184,24 @@ if __name__ == "__main__":
 
             # 2. Initialize OptFormer Scheduler
             print("Initializing OptFormer Scheduler...")
-            optformer_scheduler = OptformerScheduler(
+            optformer_scheduler = SingleObjectiveScheduler(
                 config_space=config_space,
                 metric=metric_name,
-                checkpoint_dir=optformer_checkpoint_dir,
-                task_info={
-                    'name': benchmark_name,
-                    'algorithm': args.method, # This is important for OptFormer's internal prompt generation
-                    'metric_names': metric_name
-                },
-                do_minimize= mode== "min",
+                do_minimize=mode == "min",
                 random_seed=seed,
-                n_sample_configurations=1, # We want the final suggested config for comparison
+                searcher=FMBOSearcher(
+                    config_space=config_space,
+                    checkpoint_dir=optformer_checkpoint_dir,
+                    tokenizer_dir=optformer_checkpoint_dir,
+                    use_vllm=False,
+                    task_info={
+                        'name': benchmark_name,
+                        'algorithm': args.method, # This is important for OptFormer's internal prompt generation
+                        'metric_names': metric_name
+                    },
+                    random_seed=seed,
+                    n_sample_configurations=1, # We want the final suggested config for comparison
+                ),
             )
 
             print(f"Collecting {num_samples} samples for OptFormer...")
