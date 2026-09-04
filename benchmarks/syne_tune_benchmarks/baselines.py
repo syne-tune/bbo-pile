@@ -54,7 +54,7 @@ def _fmbo_scheduler(method_arguments, algorithm: str, n_sample_configurations: i
             config_space=method_arguments.config_space,
             checkpoint_dir=Path(method_arguments.checkpoint_dir),
             tokenizer_dir=Path(method_arguments.checkpoint_dir),
-            use_vllm=False,
+            use_vllm=True,
             task_info={'name': method_arguments.benchmark_name,
                        'algorithm': algorithm,
                        'metric_names': "feval"},
