@@ -1,34 +1,6 @@
-from global_optimization_problems import (Rosenbrock, Michalewicz, Ackley, Branin, Hartman3, Hartman6,
-                                          GoldsteinPrice, Eggholder, Forrester, SixHumpCamel, Rastrigin,
-                                          StyblinskiTang, SumPowers, Sphere)
+from global_optimization_problems import global_optimization_problem_collection
 
-benchmark_definitions = dict()
-
-benchmark_definitions["global-optimization_branin"] = Branin()
-benchmark_definitions["global-optimization_goldstein_price"] = GoldsteinPrice()
-benchmark_definitions["global-optimization_eggholder"] = Eggholder()
-benchmark_definitions["global-optimization_forrester"] = Forrester()
-benchmark_definitions["global-optimization_sixhumpcamel"] = SixHumpCamel()
-benchmark_definitions["global-optimization_rastrigin_2d"] = Rastrigin(dimension=2)
-benchmark_definitions["global-optimization_rastrigin_5d"] = Rastrigin(dimension=5)
-benchmark_definitions["global-optimization_rastrigin_10d"] = Rastrigin(dimension=10)
-benchmark_definitions["global-optimization_hartman3"] = Hartman3()
-benchmark_definitions["global-optimization_hartman6"] = Hartman6()
-benchmark_definitions["global-optimization_rosenbrock_2d"] = Rosenbrock(dimension=2, lower_bound=-2, upper_bound=2)
-benchmark_definitions["global-optimization_rosenbrock_5d"] = Rosenbrock(dimension=5, lower_bound=-2, upper_bound=2)
-benchmark_definitions["global-optimization_rosenbrock_10d"] = Rosenbrock(dimension=10, lower_bound=-2, upper_bound=2)
-benchmark_definitions["global-optimization_michalewicz_2d"] = Michalewicz(dimension=2)
-benchmark_definitions["global-optimization_michalewicz_5d"] = Michalewicz(dimension=5)
-benchmark_definitions["global-optimization_michalewicz_10d"] = Michalewicz(dimension=10)
-benchmark_definitions["global-optimization_ackley_2d"] = Ackley(dimension=2)
-benchmark_definitions["global-optimization_ackley_5d"] = Ackley(dimension=5)
-benchmark_definitions["global-optimization_ackley_10d"] = Ackley(dimension=10)
-benchmark_definitions["global-optimization_sum_powers_2d"] = SumPowers(dimension=2)
-benchmark_definitions["global-optimization_sum_powers_5d"] = SumPowers(dimension=5)
-benchmark_definitions["global-optimization_sum_powers_10d"] = SumPowers(dimension=10)
-benchmark_definitions["global-optimization_styblinski_tang_2d"] = StyblinskiTang(dimension=2)
-benchmark_definitions["global-optimization_styblinski_tang_5d"] = StyblinskiTang(dimension=5)
-benchmark_definitions["global-optimization_styblinski_tang_10d"] = StyblinskiTang(dimension=10)
-benchmark_definitions["global-optimization_sphere_2d"] = Sphere(dimension=2)
-benchmark_definitions["global-optimization_sphere_5d"] = Sphere(dimension=5)
-benchmark_definitions["global-optimization_sphere_10d"] = Sphere(dimension=10)
+benchmark_definitions = {
+    f"global-optimization_{name}": problem
+    for name, problem in global_optimization_problem_collection.items()
+}
