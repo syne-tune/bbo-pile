@@ -146,6 +146,23 @@ python benchmark_main.py --seed 5 --run_all_seeds 1 --n_workers 1 --method OPT_C
 
 ---
 
+## Scaling-Law Figures (Paper Section 5.1)
+
+`data_neurips.csv` holds the Pareto-optimal (FLOPs, validation loss) points of the
+learning curves of the 25 trained models (5 sizes × 5 token budgets, one learning
+rate / batch size per pair). `data_filter_bestcell_2B.csv` holds the final validation
+loss of each of those 25 runs.
+
+```bash
+# Figure 4 (left) + power-law fit (appendix): loss vs. compute
+uv run --with tueplots python scaling_laws.py --data data_neurips.csv --output-dir figures
+
+# Figure 4 (right): Chinchilla-style L(N, D) = E + A N^-alpha + B D^-beta fit
+uv run --with tueplots python scaling_laws_rebuttal_fig.py --data data_filter_bestcell_2B.csv --outdir figures
+```
+
+---
+
 ## License
 
 Apache-2.0 (see [`LICENSE`](LICENSE)).
