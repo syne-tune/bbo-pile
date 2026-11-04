@@ -10,7 +10,11 @@ from syne_tune.config_space import is_log_space
 from syne_tune.backend.trial_status import Trial
 from syne_tune.blackbox_repository.blackbox_surrogate import add_surrogate
 from syne_tune.blackbox_repository import load_blackbox
-from open_optformer.optformer_searcher import OptformerScheduler
+
+from syne_tune.optimizer.schedulers.searchers.fmbo.fmbo_searcher import FMBOSearcher
+from syne_tune.optimizer.schedulers.single_objective_scheduler import (
+    SingleObjectiveScheduler,
+)
 from benchmarks.syne_tune_benchmarks.baselines import MethodArguments, methods
 
 logger = logging.getLogger(__name__)
@@ -76,50 +80,32 @@ def get_searcher(
         "metric_names": objective,
     }
 
+    def fmbo_scheduler(checkpoint_dir: pathlib.Path, use_vllm: bool, n_sample_configurations: int):
+        return SingleObjectiveScheduler(
+            config_space=config_space,
+            metric=objective,
+            do_minimize=True,
+            random_seed=seed,
+            searcher=FMBOSearcher(
+                config_space=config_space,
+                checkpoint_dir=checkpoint_dir,
+                tokenizer_dir=checkpoint_dir,
+                use_vllm=use_vllm,
+                random_seed=seed,
+                task_info=task_info,
+                points_to_evaluate=points_to_evaluate,
+                n_sample_configurations=n_sample_configurations,
+            ),
+        )
+
     if method_name == "OptformerHF":
-        return OptformerScheduler(
-            config_space=config_space,
-            checkpoint_dir=hf_checkpoint,
-            use_vllm=False,
-            metric=objective,
-            random_seed=seed,
-            task_info=task_info,
-            points_to_evaluate=points_to_evaluate,
-            n_sample_configurations=1,
-        )
+        return fmbo_scheduler(hf_checkpoint, use_vllm=False, n_sample_configurations=1)
     elif method_name == "OptformerLitGPT":
-        return OptformerScheduler(
-            config_space=config_space,
-            checkpoint_dir=litgpt_checkpoint,
-            use_vllm=False,
-            metric=objective,
-            random_seed=seed,
-            task_info=task_info,
-            points_to_evaluate=points_to_evaluate,
-            n_sample_configurations=1,
-        )
+        return fmbo_scheduler(litgpt_checkpoint, use_vllm=False, n_sample_configurations=1)
     elif method_name == "OptformerVLLM":
-        return OptformerScheduler(
-            config_space=config_space,
-            checkpoint_dir=hf_checkpoint,
-            use_vllm=True,
-            metric=objective,
-            random_seed=seed,
-            task_info=task_info,
-            points_to_evaluate=points_to_evaluate,
-            n_sample_configurations=1,
-        )
+        return fmbo_scheduler(hf_checkpoint, use_vllm=True, n_sample_configurations=1)
     elif method_name == "OptformerVLLM-TS50":
-        return OptformerScheduler(
-            config_space=config_space,
-            checkpoint_dir=hf_checkpoint,
-            use_vllm=True,
-            metric=objective,
-            random_seed=seed,
-            task_info=task_info,
-            points_to_evaluate=points_to_evaluate,
-            n_sample_configurations=50,
-        )
+        return fmbo_scheduler(hf_checkpoint, use_vllm=True, n_sample_configurations=50)
     elif method_name in ("RS", "CQR"):
         return methods[method_name](
             MethodArguments(

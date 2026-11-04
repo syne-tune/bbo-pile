@@ -9,7 +9,7 @@ import pathlib
 import pandas
 from syne_tune.config_space import choice
 
-from optformer_searcher import OptFormerSearcher
+from syne_tune.optimizer.schedulers.searchers.fmbo.fmbo_searcher import FMBOSearcher
 
 
 
@@ -60,11 +60,13 @@ if __name__ == "__main__":
         for i in range(args.repetitions):
             print(i)
             st = time.time()
-            searcher = OptFormerSearcher(config_space=config_space,
-                                         task_info={"name": "counting_ones",
-                                                    'algorithm': "random_search",
-                                                    "metric_names": 'error'},
-                                         checkpoint_dir=checkpoint_dir)
+            searcher = FMBOSearcher(config_space=config_space,
+                                    task_info={"name": "counting_ones",
+                                               'algorithm': "random_search",
+                                               "metric_names": 'error'},
+                                    checkpoint_dir=checkpoint_dir,
+                                    tokenizer_dir=checkpoint_dir,
+                                    use_vllm=False)
 
             curr_best = None
             for trial_id in range(args.max_trials):
