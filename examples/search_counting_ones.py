@@ -62,7 +62,7 @@ if __name__ == "__main__":
             st = time.time()
             searcher = FMBOSearcher(config_space=config_space,
                                     task_info={"name": "counting_ones",
-                                               'algorithm': "random_search",
+                                               'algorithm': method,
                                                "metric_names": 'error'},
                                     checkpoint_dir=checkpoint_dir,
                                     tokenizer_dir=checkpoint_dir,

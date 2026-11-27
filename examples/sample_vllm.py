@@ -152,8 +152,8 @@ def main():
     print(f"  - z: Categorical([0, 1, 2]) [categorical]")
     print(f"\nRegex pattern (truncated): {regex_pattern[:200]}...")
 
-    # Calculate max tokens: 2 tokens per HP (value + comma) + 1 for star + 1 for output + 1 for pipe
-    max_new_tokens = (len(hp_cont_names) + len(hp_cat_names)) * 2 + 1
+    # Calculate max tokens: n HP values + (n - 1) commas + 1 for star + 1 for output + 1 for pipe = 2n + 2
+    max_new_tokens = (len(hp_cont_names) + len(hp_cat_names)) * 2 + 2
 
     # Set up sampling parameters with guided decoding
     sampling_params = SamplingParams(
