@@ -71,7 +71,6 @@ if __name__ == "__main__":
         Methods.TPE,
         Methods.BORE,
         Methods.CQR,
-        Methods.BOTorch
     ]
     print(f"{len(methods_selected)} methods selected: {methods_selected}")
 

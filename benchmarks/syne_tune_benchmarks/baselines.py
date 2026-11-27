@@ -43,6 +43,12 @@ class Methods:
     OPT_CQR = "OPT-CQR"
     OPT_CQR_TS = 'OPT-CQR-TS'
     OPT_CQR_TS_5 = 'OPT-CQR-TS-5'
+    # original OptFormer (see original_optformer_methods.py)
+    OptFormerBBOB_HillClimb = "OptFormerBBOB-HillClimb"
+    OptFormerBBOB_GP = "OptFormerBBOB-GP"
+    OptFormerBBOB_REGEVO = "OptFormerBBOB-REGEVO"
+    OptFormerBBOB_RS = "OptFormerBBOB-RS"
+    OptFormerHPOB_GP = "OptFormerHPOB-GP"
 
 def _fmbo_scheduler(method_arguments, algorithm: str, n_sample_configurations: int = 1):
     return SingleObjectiveScheduler(
