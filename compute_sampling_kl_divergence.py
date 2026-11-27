@@ -99,6 +99,7 @@ def compute_hyperparameter_value_counts(
             values = hp.categories
         else:
             values = hp.values
+        # every value starts with a count of 1 (add-one smoothing) to avoid log(0) in the KL divergence
         hp_value_counts[hp_name] = Counter(values)
 
     for config in configs:
@@ -124,7 +125,7 @@ if __name__ == "__main__":
                         default="./results",
                         help="Path to store the results json.")
     parser.add_argument("--method", type=str,
-                        default="CQR",
+                        default="CQR", choices=["CQR"],
                         help="Optimization method.")
 
     args = parser.parse_args()
@@ -138,7 +139,7 @@ if __name__ == "__main__":
                              **tabrepo_benchmark_definitions,
                              **lcbench_benchmark_definitions,
                              **pd1_benchmark_definitions,
-                             **tabrepo_benchmark_definitions}
+                             **hpob_benchmark_definitions}
     print(benchmark_definitions.keys())
     # Load benchmark definition and setup backend
     try:
@@ -209,6 +210,7 @@ if __name__ == "__main__":
             print(f"Collected {len(optformer_samples)} samples for OptFormer.")
 
             # Ensure both lists have samples before proceeding
+            kl_divergence = None
             if not original_samples or not optformer_samples:
                 print("Error: One or both schedulers failed to collect samples. Cannot compute KL divergence.")
             else:
