@@ -5,7 +5,15 @@ from copy import deepcopy
 import numpy as np
 from syne_tune.config_space import choice
 
-from open_optformer.history import History, preprocess
+from other_searchers.history import History
+
+
+def preprocess(prompt: str):
+    prompt = prompt.replace('parameter', "")
+    prompt = prompt.replace('trial', "")
+    prompt = prompt.replace('\"', "")
+    prompt = prompt.replace(' ', "")
+    return prompt
 
 
 def random_trajectories(iterations, dimensionality):
@@ -94,7 +102,7 @@ if __name__ == "__main__":
     d = Path(args.output_path) / 'data'
     os.makedirs(d, exist_ok=True)
 
-    for mode in ['train', 'valid'][:1]:
+    for mode in ['train', 'valid']:
         with open(d / f'counting_ones_{mode}.txt', 'w') as fh:
 
             if mode == 'train':
