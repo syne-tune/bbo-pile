@@ -189,7 +189,7 @@ def stack_benchmark_results(
     benchmark_families: List[str],
 ) -> Dict[str, np.array]:
     for benchmark, (t_range, method_dict) in benchmark_results_dict.items():
-        for method in methods_to_show:
+        for method in list(methods_to_show):
             if method not in method_dict:
                 print(
                     f"removing method {method} from methods to show as it is not present in all benchmarks"

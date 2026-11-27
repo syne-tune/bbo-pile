@@ -24,8 +24,8 @@ def load_result(name, metadata, path):
 
 def convert_to_numpy(benchmark_df, num_time_steps: int = 20):
     t_min = 0
-    # the last time step is the median of the stopping time of all algorithms
-    t_max = benchmark_df.groupby(["algorithm"]).max().trial_id.max()
+    # trial ids are 0-indexed, so the number of time steps is the largest trial id + 1
+    t_max = benchmark_df.groupby(["algorithm"]).max().trial_id.max() + 1
     t_range = np.arange(t_min, t_max)
     seed_results = {}
     for algorithm in benchmark_df["algorithm"].unique():

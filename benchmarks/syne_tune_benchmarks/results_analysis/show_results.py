@@ -251,7 +251,7 @@ def stack_benchmark_results(
     (num_methods, num_benchmarks, num_min_seeds, num_time_steps)
     """
     for benchmark, (t_range, method_dict) in benchmark_results_dict.items():
-        for method in methods_to_show:
+        for method in list(methods_to_show):
             if method not in method_dict:
                 print(
                     f"removing method {method} from methods to show as it is not present in all benchmarks"
