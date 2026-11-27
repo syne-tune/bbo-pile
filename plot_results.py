@@ -153,7 +153,7 @@ def main() -> None:
                 color=style["color"],
                 linestyle=style["linestyle"],
                 linewidth=2,
-                label=f"{method.replace("Optformer", "")}",
+                label=f"{method.replace('Optformer', '')}",
             )
 
             ax.fill_between(
@@ -168,7 +168,7 @@ def main() -> None:
         ax.set_xlabel("function evaluations")
         ax.set_ylabel("runtime (s)")
         ax.set_title(
-            "Runtime per Trial - 30 seeds, FCNet-protein",
+            f"Runtime per Trial - {n_seeds} seeds, FCNet-protein",
             fontweight="bold",
         )
         ax.legend(loc="upper left", fontsize="small")
