@@ -20,8 +20,8 @@ try:
 except Exception as exc:
     raise RuntimeError(
         "HEBOSearcher requires the 'hebo', 'optuna' and 'optunahub' packages. "
-        "Install them with: pip install hebo optuna optunahub"
-        "Note that hebo currently works only with Python version <=3.11 or older."
+        "Install them with: pip install hebo optuna optunahub. "
+        "Note that hebo currently works only with Python <= 3.11."
     ) from exc
 
 
@@ -61,9 +61,10 @@ def _syne_tune_domain_to_optuna_dist(name: str, dom: Any) -> tuple[Any, dict]:
 
         if cast_int:
             # IntDistribution
+            # Optuna does not support step != 1 together with log=True
             step_for_int = (
                 int(computed_step)
-                if float(computed_step).is_integer() and computed_step != 0
+                if float(computed_step).is_integer() and computed_step != 0 and not log_scale
                 else 1
             )
             return IntDistribution(
@@ -86,7 +87,8 @@ def _syne_tune_domain_to_optuna_dist(name: str, dom: Any) -> tuple[Any, dict]:
             return FloatDistribution(
                 float(lower),
                 float(upper),
-                step=float(computed_step) if size > 1 else None,
+                # Optuna does not support step together with log=True
+                step=float(computed_step) if size > 1 and not log_scale else None,
                 log=bool(log_scale),
             ), {
                 "type": "float_finite",
