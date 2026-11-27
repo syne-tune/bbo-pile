@@ -84,7 +84,7 @@ if __name__ == "__main__":
     results = pandas.DataFrame(results)
     results.to_csv(output_path / 'results.csv.zip',  compression={'method': 'zip'})
     metadata = {"algorithm": method,
-                "benchmark": 'global-optimization_' + benchmark,
+                "benchmark": benchmark,
                 "seed": seed,
                 "config_space":  json.dumps(config_space_to_json_dict(config_space)),
                 'metric_names': ['objective']}
