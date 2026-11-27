@@ -18,7 +18,7 @@ if __name__ == "__main__":
     parser.add_argument("--n_workers", type=int, required=False, default=1)
     parser.add_argument("--num_seeds", type=int, required=False, default=1)
     parser.add_argument("--dry-run", action="store_true")
-    parser.add_argument("--checkpoint_dir", type=str)
+    parser.add_argument("--checkpoint_dir", type=str, default="")
     parser.add_argument("--cluster", type=str, required=True)
     parser.add_argument("--partition", type=str, required=True)
     parser.add_argument(
@@ -63,7 +63,7 @@ if __name__ == "__main__":
                     # run all seeds in [0, seed-1]
                     "seed": num_seeds,
                     "checkpoint_dir": args.checkpoint_dir,
-                    "run_all_seed": 1,
+                    "run_all_seeds": 1,
                 }
             )
 

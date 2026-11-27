@@ -112,7 +112,7 @@ if __name__ == "__main__":
         type=int,
         required=False,
         default=0,
-        help="If 1 runs all seeds between [0, args.seed] if 0 run only args.seed.",
+        help="If 1 runs all seeds in [0, args.seed - 1], if 0 runs only args.seed.",
     )
     parser.add_argument(
         "--checkpoint_dir",

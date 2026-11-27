@@ -92,7 +92,7 @@ if __name__ == "__main__":
                         "checkpoint_dir": args.checkpoint_dir,
                         # run all seeds in [0, seed-1]
                         "seed": seed,
-                        "run_all_seed": 0,
+                        "run_all_seeds": 0,
                     }
                 )
 
@@ -124,7 +124,7 @@ if __name__ == "__main__":
         bash_setup_command=bash_setup_command,
         env={
             # write tuner files in Slurmpilot folder corresponding to `jobname`
-            "CHECKPOINT_DIR": os.environ['CHECKPOINT_DIR'],
+            "CHECKPOINT_DIR": os.environ.get('CHECKPOINT_DIR', args.checkpoint_dir),
             "CURL_CA_BUNDLE": "/etc/ssl/certs/ca-bundle.crt",
             "SYNETUNE_FOLDER": f"{slurmpilot_folder}/{jobname}",
         },
