@@ -169,10 +169,12 @@ class HEBOSearcher(SingleObjectiveBaseSearcher):
         self._do_minimize = do_minimize
 
         # Instantiate optunahub HEBOSampler
+        # Note: Syne Tune's SingleObjectiveScheduler already multiplies the metric by -1 when
+        # do_minimize=False, so the searcher always receives a metric to be minimized.
         HEBOSampler = optunahub.load_module("samplers/hebo").HEBOSampler
         self._study = optuna.create_study(
             sampler=HEBOSampler(seed=random_seed),
-            direction="minimize" if do_minimize else "maximize",
+            direction="minimize",
         )
 
     def suggest(self, **kwargs):
