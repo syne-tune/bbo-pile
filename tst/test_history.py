@@ -6,7 +6,7 @@ from syne_tune.experiments import load_experiment
 from syne_tune.config_space import randint, uniform, choice, finrange
 from syne_tune.constants import SYNE_TUNE_ENV_FOLDER
 
-from open_optformer.history import History, Trial, encode, quantize, dequantize
+from other_searchers.history import History, Trial, encode, quantize, dequantize
 
 def test_quantize():
     assert quantize(0.5, 0, 1, q=1000) == 500

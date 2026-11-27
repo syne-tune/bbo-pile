@@ -2,7 +2,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from syne_tune.optimizer.baselines import REA, RandomSearch, CQR, TPE, BORE
 from syne_tune.optimizer.schedulers.single_objective_scheduler import SingleObjectiveScheduler
-from open_optformer.hebo_searcher import HEBOSearcher
+from other_searchers.hebo_searcher import HEBOSearcher
 from syne_tune.optimizer.schedulers.searchers.fmbo.fmbo_searcher import FMBOSearcher
 
 @dataclass

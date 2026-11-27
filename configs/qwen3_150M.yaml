@@ -1,5 +1,5 @@
 data:
-  class_path: open_optformer.training.syne_tune_data.SyneTuneData
+  class_path: training.syne_tune_data.SyneTuneData
   init_args:
     data_path: /syne-tune-benchmarks/data/tokenized_data/concat
     split_names: ['train', 'valid']

@@ -11,7 +11,7 @@ from syne_tune.optimizer.schedulers.single_objective_scheduler import (
 )
 
 from syne_tune.optimizer.schedulers.searchers.fmbo.fmbo_searcher import FMBOSearcher
-from open_optformer.hebo_searcher import HEBOSearcher
+from other_searchers.hebo_searcher import HEBOSearcher
 
 @dataclass
 class MethodArguments:

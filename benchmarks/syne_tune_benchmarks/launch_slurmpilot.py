@@ -113,7 +113,7 @@ if __name__ == "__main__":
         src_dir=str(Path(__file__).parent),
         python_binary="python",
         python_libraries=[
-            str(Path(__file__).parent.parent.parent / "open_optformer"),
+            str(Path(__file__).parent.parent.parent / "other_searchers"),
         ],
         n_cpus=4,
         n_gpus=0 if cluster == 'barnard' else 1,  # barnard has no GPU

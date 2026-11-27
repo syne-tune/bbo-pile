@@ -80,7 +80,7 @@ if __name__ == "__main__":
         src_dir=str(Path(__file__).parent),
         python_binary="python",
         python_libraries=[
-            str(Path(__file__).parent.parent.parent.parent / "open_optformer"),
+            str(Path(__file__).parent.parent.parent.parent / "other_searchers"),
         ],
         n_cpus=1,
         mem=1024 * 8,

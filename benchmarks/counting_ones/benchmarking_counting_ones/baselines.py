@@ -11,7 +11,7 @@ from syne_tune.optimizer.schedulers.single_objective_scheduler import (
     SingleObjectiveScheduler,
 )
 from syne_tune.optimizer.schedulers.searchers.fmbo.fmbo_searcher import FMBOSearcher
-from open_optformer.local_search import LocalSearch
+from other_searchers.local_search import LocalSearch
 
 @dataclass
 class MethodArguments:

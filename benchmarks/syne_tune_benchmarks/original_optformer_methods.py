@@ -2,7 +2,7 @@ from syne_tune.optimizer.schedulers.single_objective_scheduler import (
     SingleObjectiveScheduler,
 )
 
-from open_optformer.original_optformer_searcher import OriginalOptFormerSearcher
+from other_searchers.original_optformer_searcher import OriginalOptFormerSearcher
 from baselines import Methods
 
 original_optformer_methods = {

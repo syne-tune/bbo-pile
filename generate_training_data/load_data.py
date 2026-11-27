@@ -8,7 +8,7 @@ from json import JSONDecodeError
 
 from syne_tune.experiments import ExperimentResult
 from syne_tune.config_space import config_space_from_json_dict
-from open_optformer.history import History
+from other_searchers.history import History
 
 
 def load_result(name, metric_name, config_space, path):
