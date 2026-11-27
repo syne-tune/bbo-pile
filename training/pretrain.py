@@ -280,7 +280,7 @@ def main(
     fabric.print("| Performance")
     fabric.print(f"| - Total tokens  : {total_tokens:,}")
     fabric.print(f"| - Training Time : {(time.perf_counter() - train_time):.2f} s")
-    fabric.print(f"| - Tok/sec       : {total_tokens / train_time:.2f} tok/s")
+    fabric.print(f"| - Tok/sec       : {total_tokens / (time.perf_counter() - train_time):.2f} tok/s")
     fabric.print("| " + "-" * 40)
 
     if fabric.device.type == "cuda":

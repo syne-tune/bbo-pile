@@ -6,7 +6,7 @@ from pathlib import Path
 
 BASE_PATH_CLUSTER = os.environ['BASE_PATH']
 DATASET_NAME = 'all'
-VERSION = 'v0.8'
+VERSION = os.environ.get('VERSION', 'v0.8')
 SEED = 0
 WANDB_PROJECT = f'open_optformer_qwen3_hp_sweep_{VERSION}'
 

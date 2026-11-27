@@ -21,7 +21,7 @@ model_config:
   final_logit_softcapping: null
   gelu_approximate: none
   hf_config:
-    name: Qwen3-2M
+    name: Qwen3-5M
     org: Qwen
   latent_attention: null
   lm_head_bias: false

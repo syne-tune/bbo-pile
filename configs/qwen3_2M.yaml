@@ -35,7 +35,7 @@ model_config:
   n_head: 8
   n_layer: 7
   n_query_groups: 4
-  name: Qwen3-0.2B
+  name: Qwen3-2M
   norm_1: true
   norm_2: true
   norm_class_name: RMSNorm
