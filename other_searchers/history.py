@@ -166,7 +166,7 @@ class History:
         hist = cls(config_space=config_space,
                         name=benchmark_name,
                         algorithm=algorithm_name,
-                        metric_names=metric_name,
+                        metric_names=[metric_name],
                    num_numeric_tokens=num_numeric_tokens,
                    remove_names=remove_names)
 

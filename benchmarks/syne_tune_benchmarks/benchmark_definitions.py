@@ -13,7 +13,7 @@ class BenchmarkDefinition:
     dataset_name: str
     max_num_evaluations: Optional[int] = None
     surrogate: Optional[str] = None
-    use_surrogate: Optional[bool] = True,
+    use_surrogate: Optional[bool] = True
     surrogate_kwargs: Optional[Dict] = None
 
 
