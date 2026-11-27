@@ -9,7 +9,6 @@ Install the required packages by running the following command from the main dir
 
 Furthermore, you need to install the following packages, if you want to install the original optformer code:
 
-    pip install -r requirements.txt
     pip install git+https://github.com/google-research/t5x.git@a9b8f1563eac10aa18f4fe384959733a6ae7e4ea --no-deps
     pip install git+https://github.com/google-research/optformer.git@12e2639954b0cd9bf824aab2d040650e6b32089c tensorflow-cpu==2.15.1
 
@@ -84,19 +83,20 @@ And pre-process the dataset to a litdata format, which is required for training 
 
     python preprocess_data.py \
       --input_path $BASE_PATH/dataset/$VERSION/all \
-      --output_path $BASE_PATH/dataset/$VERSION/tokenized_data \
+      --output_path $BASE_PATH/tokenized_dataset/$VERSION/all \
       --tokenizer_dir $BASE_PATH/tokenizer/$VERSION
 
 ### Pre-training
 
-First, update BASE_PATH_CLUSTER, DATASET_NAME, and WANDB_PROJECT from ``configs/generate_configs.py`` based on your setup. Then, run the script to generate configuration files:
+First, check DATASET_NAME and WANDB_PROJECT in ``configs/generate_configs.py`` (the data and output paths are derived from the `BASE_PATH` and `VERSION` environment variables). Then, run the script to generate configuration files:
 
     cd configs
     python generate_configs.py
 
-At the end we can start the model training:
+At the end we can start the model training from the main directory:
 
-    python open_optformer/training/pretrain.py pythia410M --config configs/NAME_OF_YOUR_CONFIG.yaml
+    cd ..
+    PYTHONPATH=. python training/pretrain.py NAME_OF_YOUR_RUN --config configs/NAME_OF_YOUR_CONFIG.yaml
 
 
 # Dataset History
